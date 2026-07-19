@@ -40,7 +40,7 @@
 - **门禁**: fixtures 362/362;定点字节一致
 
 ### S1 — test262 快速杠杆(07-26 → 08-08)
-- [ ] 修复 TypedArray 区坏 include(单点救回 288 项 0% 区,预计 +4.5%)
+- [~] 修复 TypedArray 区坏 include(**2026-07-19 根因已修**:根因是构造器从未物化为全局值,`ArrayBuffer.prototype.resize` 读 undefined 属性致 include 加载即抛;已实现构造器闭包 + `.prototype` 单例 + 动态方法分派,TA 区 0/288 → 10/288;**剩余缺口非 include 问题**:%TypedArray% 原型链、方法值读取、描述符反射——转入 S4 同类簇合并处理)
 - [ ] SIGSEGV/SIGBUS 崩溃簇(458 项)聚类归因,修头部根因
 - [ ] 目标: **20.4% → ≥28%**;报告更新到 tests/test262/last_report.md
 - **门禁**: fixtures 不降 + 定点 + test262 数字只升
@@ -74,13 +74,13 @@
 - [ ] 字符串 O(N²) 拼接专项(PERF_PLAN 自封 #1,实测 ~206× vs node): rope 或可变累加缓冲,先出设计评审再动手
 - [ ] "定点迁移"机制设计: 受控打破 gen2==gen3 一步(双代过渡),偿还 existsSync 假阳性、`\0` 转义丢弃等被定点固化的正确性债
 - [ ] **L1 决策点**: AOT 嵌入库是否仍是产品目标(地基 `binary/*_object.js`/`static_linker.js` 现成;L2 route B 已覆盖大部分需求)——S5 开始前给出 go/no-go
-- [ ] **C 互操作跟进**(2026-07-19 主人指定): 设计已定稿 `docs/C_INTEROP_DESIGN.md`(①消费 C 动态库 ②消费 C 静态库 ③JS 产出库,C0–C6 阶段 + macOS arm64 实证基线,实证产物在 `.agent-work/c-interop-probe/`);C0 修复排期与 L1 决策联动
+- [ ] **C 互操作跟进**(2026-07-19 主人指定): 设计已定稿 `docs/C_INTEROP_DESIGN.md`(①消费 C 动态库 ②消费 C 静态库 ③JS 产出库,C0–C6 阶段 + macOS arm64 实证基线,实证产物在 `.agent-work/c-interop-probe/`);**声明层已改决议**:废弃 .jslib,直接消费 C 头文件——见 `docs/C_HEADER_DECLARATION.md`(zlib 为首个验收靶);C0 修复排期与 L1 决策联动
 
 ## 4. 风险登记(持续跟踪)
 
 | 风险 | 等级 | 对策 |
 |---|---|---|
-| 自举布局悬崖(源码体积/组合触发的静默 miscompile) | 高 | 铁律 2/5;大改一律先独立分支 + 全链验证 |
+| 自举布局悬崖(源码体积/组合触发的静默 miscompile) | 高(**已实证活跃**,2026-07-19) | 本周期实测:`gen1==gen2==gen3` 在**同一源码**(含基线提交 e121c1a/b84f8e5)上随运行窗口翻 pass/fail——编译后编译器内堆布局运气(GC 保守扫描族),gen2==gen3 恒成立、gen0(node) 与 gen1+ 发射量发散(坏窗口差 ~240KB TDZ 守卫字符串)。**非本次改动引入**;铁律 2/5 照守,提交一律在验证窗口内完成并记录;根治列入 S5 专项(与 28GB 初始堆规避项同源) |
 | 28GB 初始堆是重定位 bug 的规避而非修复 | 高 | S5 定点迁移机制落地后排期根治;<32GB 机器暂无法自举需在 README 声明 |
 | x64 质量债(自举定点未达、TLS 未做) | 中 | S3 预研后专项 |
 | 上帝类 Compiler(3.5k 行)+ mixin 隐式契约 | 中 | 触及模块解析时顺手拆 `compiler/modules/`,不做大重构 |
