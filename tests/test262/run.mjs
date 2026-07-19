@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// test262 conformance harness for jsbin (JS -> native AOT compiler).
+// test262 conformance harness for asm.js (JS -> native AOT compiler).
 //
 // This is an HONEST, bounded conformance runner. It vendors the official
 // tc39/test262 corpus (NOT committed -- see .gitignore), assembles each test
 // exactly as test262 prescribes (harness includes + frontmatter flags), then
-// AOT-compiles and runs each assembled test with jsbin, classifying the result.
+// AOT-compiles and runs each assembled test with asm.js, classifying the result.
 //
-// Because jsbin compiles every test to a native binary (~0.13s each), running
+// Because asm.js compiles every test to a native binary (~0.13s each), running
 // the full ~53k-test suite is impractical; instead we run a deterministic,
 // clearly-reported subset (selected dirs + optional stride) and report a
 // defensible pass-rate with a full breakdown and explicit excluded categories.
@@ -15,7 +15,7 @@
 //   node tests/test262/run.mjs [options]
 // Options (all optional):
 //   --corpus <dir>   Path to test262 checkout   (default: <repo>/.test262-corpus)
-//   --target <t>     jsbin target               (default: macos-arm64)
+//   --target <t>     asm.js target               (default: macos-arm64)
 //   --stride <n>     Keep every n-th eligible test (default: 1 = all selected)
 //   --max <n>        Hard cap on tests actually run (default: none)
 //   --jobs <n>       Parallel workers           (default: 8)
@@ -64,7 +64,7 @@ const SELECTED_DIRS = [
   "built-ins/Symbol",
 ];
 
-// Features that jsbin structurally cannot / does not implement. Tests tagged
+// Features that asm.js structurally cannot / does not implement. Tests tagged
 // with any of these in their `features:` frontmatter are EXCLUDED and counted
 // separately (not scored as failures). This list is deliberately conservative:
 // it only excludes things that are architecturally out of scope for an AOT
@@ -75,7 +75,7 @@ const UNSUPPORTED_FEATURES = new Set([
   "Atomics",
   "SharedArrayBuffer",
   "Atomics.waitAsync",
-  // Host realm / dynamic eval surface (jsbin is AOT; no realm/eval host hooks).
+  // Host realm / dynamic eval surface (asm.js is AOT; no realm/eval host hooks).
   "cross-realm",
   "dynamic-import",
   "import-assertions",
@@ -274,7 +274,7 @@ function run(cmd, args, timeoutMs) {
 // Result classes:
 //   PASS         positive test ran & produced no assertion/throw (exit 0)
 //   FAIL         wrong result / assertion threw (compiled, ran, exit != 0 by throw)
-//   COMPILE_FAIL jsbin could not compile the source (unsupported syntax etc.)
+//   COMPILE_FAIL asm.js could not compile the source (unsupported syntax etc.)
 //   CRASH        segfault / signal / timeout at compile or run
 // For negative tests the expected outcome is inverted (see below).
 
@@ -293,12 +293,12 @@ async function runOneTest(t, opt, workdir) {
   // NEGATIVE tests: expected error at a phase.
   if (t.meta.negative) {
     const phase = t.meta.negative.phase;
-    // parse / resolution => must fail to compile (jsbin has no separate resolve step)
+    // parse / resolution => must fail to compile (asm.js has no separate resolve step)
     if (phase === "parse" || phase === "resolution" || phase === "early") {
       cleanup(srcPath, binPath);
       if (comp.timedOut) return cls("CRASH", "negative-parse compile timeout");
       return compiledOk
-        ? cls("FAIL", "expected " + phase + " error but jsbin compiled it")
+        ? cls("FAIL", "expected " + phase + " error but asm.js compiled it")
         : cls("PASS", "compile rejected as expected (" + (t.meta.negative.type || "error") + ")");
     }
     // runtime: must compile, then throw at run time (nonzero exit, not a crash signal)
@@ -423,7 +423,7 @@ async function main() {
   console.error(`eligible      : ${eligible.length}  stride=${opt.stride}  running=${tests.length}  jobs=${opt.jobs}`);
   console.error("");
 
-  const workdir = join(tmpdir(), "jsbin-t262-" + process.pid);
+  const workdir = join(tmpdir(), "asm.js-t262-" + process.pid);
   mkdirSync(workdir, { recursive: true });
 
   // Worker pool.
@@ -508,9 +508,9 @@ function areaOf(rel) {
 // Bucket a failing result into a coarse ROOT-CAUSE reason using only static
 // test attributes (includes/flags/negative) + the classification detail. This
 // never touches the pass/fail decision -- it only groups failures so the report
-// surfaces dominant jsbin gaps instead of an opaque "exit 1" bucket.
+// surfaces dominant asm.js gaps instead of an opaque "exit 1" bucket.
 function failReason(r) {
-  if (r.status === "COMPILE_FAIL") return "COMPILE_FAIL: jsbin could not compile (unsupported syntax / parser gap)";
+  if (r.status === "COMPILE_FAIL") return "COMPILE_FAIL: asm.js could not compile (unsupported syntax / parser gap)";
   if (r.status === "CRASH") return "CRASH: " + (r.detail || "signal/timeout");
   // FAIL:
   const inc = r.includes || [];
@@ -531,14 +531,14 @@ function topN(obj, n) {
 function buildReport(d) {
   const L = [];
   const P = (s) => L.push(s);
-  P("# jsbin test262 conformance report");
+  P("# asm.js test262 conformance report");
   P("");
   P(`_Generated ${new Date().toISOString()} — target ${d.opt.target}_`);
   P("");
   const passPct = d.pct(d.totals.PASS);
   P("## Headline");
   P("");
-  P(`**jsbin passes ${d.totals.PASS} / ${d.run} = ${passPct}% of the run test262 subset**`);
+  P(`**asm.js passes ${d.totals.PASS} / ${d.run} = ${passPct}% of the run test262 subset**`);
   P(`(selected \`language/\` + core \`built-ins/\`), one variant per test.`);
   P("");
   P(`Of ${d.files} discovered test files in the selected dirs, `
@@ -605,12 +605,12 @@ function buildReport(d) {
   P("- Each assembled test is AOT-compiled (`node cli.js t.js -o t --target " + d.opt.target + "`, "
     + d.opt.compileTimeout / 1000 + "s timeout) then executed (" + d.opt.runTimeout / 1000 + "s timeout).");
   P("- Classification: PASS = positive test exits 0 (async: `Test262:AsyncTestComplete` on stdout);");
-  P("  FAIL = compiled+ran but assertion threw / wrong exit; COMPILE_FAIL = jsbin could not compile;");
+  P("  FAIL = compiled+ran but assertion threw / wrong exit; COMPILE_FAIL = asm.js could not compile;");
   P("  CRASH = signal/timeout. NEGATIVE tests invert: parse/resolution ⇒ PASS iff compile fails;");
   P("  runtime ⇒ PASS iff the binary exits nonzero without crashing.");
   P("- **Known limitation**: negative tests are verified by *phase* (compile-fail vs runtime-throw),");
-  P("  not by the exact error constructor — jsbin does not print the thrown error's type, so a test");
-  P("  that throws the wrong error type at the right phase is scored PASS. This slightly favors jsbin");
+  P("  not by the exact error constructor — asm.js does not print the thrown error's type, so a test");
+  P("  that throws the wrong error type at the right phase is scored PASS. This slightly favors asm.js");
   P("  on negative tests and is disclosed here for honesty.");
   P("");
   P("### Reproduce");

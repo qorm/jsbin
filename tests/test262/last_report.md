@@ -1,6 +1,6 @@
 # asm.js test262 conformance report
 
-_Generated 2026-07-17T10:41:39.303Z — target macos-arm64_
+_Generated 2026-07-19T13:14:09.054Z — target macos-arm64_
 
 ## Headline
 
@@ -14,16 +14,16 @@ Of 33776 discovered test files in the selected dirs, 1466 were excluded up front
 | class | count | % of run |
 |-------|------:|---------:|
 | PASS         | 1318 | 20.40 |
-| FAIL         | 4085 | 63.22 |
+| FAIL         | 4086 | 63.23 |
 | COMPILE_FAIL | 601 | 9.30 |
-| CRASH        | 458 | 7.09 |
+| CRASH        | 457 | 7.07 |
 | **run**      | **6462** | 100 |
 
 ## By area
 
 | area | run | PASS | FAIL | COMPILE_FAIL | CRASH | pass% |
 |------|----:|-----:|-----:|-------------:|------:|------:|
-| built-ins/Array | 594 | 121 | 320 | 1 | 152 | 20.4 |
+| built-ins/Array | 594 | 121 | 321 | 1 | 151 | 20.4 |
 | built-ins/Boolean | 10 | 1 | 8 | 0 | 1 | 10.0 |
 | built-ins/JSON | 33 | 8 | 25 | 0 | 0 | 24.2 |
 | built-ins/Map | 41 | 7 | 32 | 0 | 2 | 17.1 |
@@ -59,15 +59,15 @@ Excluded-by-feature detail:
 
 ## Top failing patterns (FAIL / COMPILE_FAIL / CRASH detail strings)
 
-- **2251×** FAIL: assertion mismatch (Test262Error / wrong value)
+- **2252×** FAIL: assertion mismatch (Test262Error / wrong value)
 - **601×** COMPILE_FAIL: asm.js could not compile (unsupported syntax / parser gap)
 - **535×** FAIL: async ($DONE not signalled / promise rejected)
 - **528×** FAIL: property-descriptor reflection (verifyProperty: length/name/writable/enumerable/configurable)
 - **429×** FAIL: negative test wrong outcome (phase=parse)
-- **362×** CRASH: run signal SIGSEGV
+- **360×** CRASH: run signal SIGSEGV
 - **194×** FAIL: TypedArray/ArrayBuffer semantics
 - **96×** FAIL: array contents mismatch (compareArray)
-- **54×** CRASH: run signal SIGBUS
+- **55×** CRASH: run signal SIGBUS
 - **50×** FAIL: constructor-ness reflection (isConstructor / not-a-constructor)
 - **42×** CRASH: run timeout
 - **2×** FAIL: negative test wrong outcome (phase=runtime)
@@ -123,4 +123,4 @@ mkdir -p .test262-corpus && tar xzf /tmp/t262.tgz -C .test262-corpus --strip-com
 node tests/test262/run.mjs --stride 5 --jobs 10 --target macos-arm64
 ```
 
-_Run wall-clock: 303.7s._
+_Run wall-clock: 292.4s._

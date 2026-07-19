@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-17T10:41:39.305Z",
+  "generated": "2026-07-19T13:14:09.061Z",
   "config": {
     "corpus": "/Users/dmy/work/jsbin/.test262-corpus",
     "target": "macos-arm64",
@@ -45,17 +45,17 @@
   "run": 6462,
   "totals": {
     "PASS": 1318,
-    "FAIL": 4085,
+    "FAIL": 4086,
     "COMPILE_FAIL": 601,
-    "CRASH": 458
+    "CRASH": 457
   },
   "passRatePct": 20.4,
   "byArea": {
     "built-ins/Array": {
       "PASS": 121,
-      "FAIL": 320,
+      "FAIL": 321,
       "COMPILE_FAIL": 1,
-      "CRASH": 152
+      "CRASH": 151
     },
     "built-ins/Boolean": {
       "PASS": 1,
@@ -145,10 +145,10 @@
   "topFailPatterns": [
     {
       "pattern": "FAIL: assertion mismatch (Test262Error / wrong value)",
-      "count": 2251
+      "count": 2252
     },
     {
-      "pattern": "COMPILE_FAIL: jsbin could not compile (unsupported syntax / parser gap)",
+      "pattern": "COMPILE_FAIL: asm.js could not compile (unsupported syntax / parser gap)",
       "count": 601
     },
     {
@@ -165,7 +165,7 @@
     },
     {
       "pattern": "CRASH: run signal SIGSEGV",
-      "count": 362
+      "count": 360
     },
     {
       "pattern": "FAIL: TypedArray/ArrayBuffer semantics",
@@ -177,7 +177,7 @@
     },
     {
       "pattern": "CRASH: run signal SIGBUS",
-      "count": 54
+      "count": 55
     },
     {
       "pattern": "FAIL: constructor-ness reflection (isConstructor / not-a-constructor)",
