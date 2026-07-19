@@ -1,8 +1,8 @@
-// JSBin Runtime - Node.js net (real async, event-driven TCP)
+// asm.js Runtime - Node.js net (real async, event-driven TCP)
 //
 // ASYNC READINESS MODEL (round 4)
 // -------------------------------
-// jsbin's native event loop (`_ev_run`) drains the setImmediate queue before
+// asm.js's native event loop (`_ev_run`) drains the setImmediate queue before
 // exit. We ride that queue to get readiness polling WITHOUT touching the loop's
 // hand-written assembler: while any socket/server fd is registered we keep
 // re-arming a "poll tick" via setImmediate. Each tick issues a real poll(2)

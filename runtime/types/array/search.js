@@ -1,4 +1,4 @@
-// JSBin 数组运行时 - 搜索方法
+// asm.js 数组运行时 - 搜索方法
 // indexOf, includes, lastIndexOf
 
 import { VReg } from "../../../vm/registers.js";

@@ -1,4 +1,4 @@
-// JSBin 运行时 - M3 真·多 M G-M-P 调度器(docs/PARALLEL_DESIGN.md §4-M3)
+// asm.js 运行时 - M3 真·多 M G-M-P 调度器(docs/PARALLEL_DESIGN.md §4-M3)
 // per-P 运行队列 + 全局队列 + 工作窃取 + 原子自旋锁 + futex 空闲/唤醒 + 多 M 调度环。
 //
 // 门控:全部真体仅 **linux-arm64**(isParallel)发射;GOMAXPROCS=1 默认路径不触达

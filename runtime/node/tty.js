@@ -1,4 +1,4 @@
-// JSBin Runtime - Node.js tty
+// asm.js Runtime - Node.js tty
 
 import { JStoCstring } from "./_string.js";
 import { getSyscall } from "./constants.js";

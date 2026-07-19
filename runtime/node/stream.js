@@ -1,10 +1,10 @@
-// JSBin Runtime - Node.js stream
+// asm.js Runtime - Node.js stream
 // Real Readable/Writable/Duplex/Transform/PassThrough with backpressure,
 // pipe(), pipeline(), finished(), and object mode.
 // (Async iteration `for await (chunk of stream)` is not supported — see the
 // Readable note below; consume with 'data'/'end', read(), pipe(), or pipeline().)
 //
-// Async model: jsbin has no real timers, but the compiled event loop drains
+// Async model: asm.js has no real timers, but the compiled event loop drains
 // microtasks (queueMicrotask / process.nextTick) fully, then one setImmediate,
 // re-draining microtasks between each, before the process exits (see
 // runtime/core/process.js:_ev_run). We schedule stream progress as microtasks
@@ -218,7 +218,7 @@ class Readable extends EventEmitter {
     // Readable.from(iterable | asyncIterable | iterator) -> Readable
     static from(iterable, options) {
         const r = new Readable(Object.assign({ objectMode: true }, options || {}));
-        // Arrays: jsbin does not expose Array.prototype[Symbol.iterator] as a
+        // Arrays: asm.js does not expose Array.prototype[Symbol.iterator] as a
         // callable, so iterate by index.
         if (Array.isArray(iterable)) {
             let i = 0;

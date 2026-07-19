@@ -1,4 +1,4 @@
-// JSBin 编译器 - Math 方法编译
+// asm.js 编译器 - Math 方法编译
 // 从 builtin_methods.js 按功能拆出(2026-07-14):compileMathMethod / emitMinMaxStep /
 // compileMathMinMaxSpread / compileMathHypot。方法通过 this 解析,与主 mixin 同一原型。
 

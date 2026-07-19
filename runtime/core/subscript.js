@@ -1,4 +1,4 @@
-// JSBin 运行时 - 下标访问
+// asm.js 运行时 - 下标访问
 // 统一处理 Array 和 TypedArray 的下标访问
 
 import { VReg } from "../../vm/registers.js";

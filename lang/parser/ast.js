@@ -1,4 +1,4 @@
-// JSBin - JavaScript AST 节点定义
+// asm.js - JavaScript AST 节点定义
 // 抽象语法树节点类型和类
 
 // ============ 节点类型 ============
@@ -321,7 +321,7 @@ export class CatchClause extends Node {
 }
 
 // [方言扩展] SpawnStatement:`js <CallExpression>` —— 求值被调方与实参后把调用
-// 作为新协程投递到事件循环(fire-and-forget,Go 的 go 语句之 jsbin 版)。
+// 作为新协程投递到事件循环(fire-and-forget,Go 的 go 语句之 asm.js 版)。
 export class SpawnStatement extends Node {
     constructor(call) {
         super(NodeType.SpawnStatement);

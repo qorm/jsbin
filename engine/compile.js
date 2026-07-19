@@ -290,7 +290,7 @@ export function compileFragment(source, target, captureLayout) {
     }
     if (lastStmt === null) lastStmt = body[body.length - 1]; // 全是函数声明 → 完成值 undefined
     // ES 完成值(eval 语义):表达式语句/含表达式的控制流(if/try/switch/循环/块)以
-    // "最后求值的表达式"为完成值——jsbin codegen 恒把它留在 RET,故只需**不**覆盖。
+    // "最后求值的表达式"为完成值——asm.js codegen 恒把它留在 RET,故只需**不**覆盖。
     // 仅"无值"末句(声明/空/break/continue)完成值为 undefined,须显式置。
     // (new Function 不经此路径:__eval_shim 把它包装成 `(function(){...})` 表达式片段,
     //  片段求值即真闭包,函数语义/形参绑定全由正常 compileFunctionBody 处理。)
@@ -342,7 +342,7 @@ export function compileFragment(source, target, captureLayout) {
     const code = c.asm.code.slice(cs);
     const fixups = fixupArr.slice(fs);
     // 注:用索引循环而非 for-of。Array.from(asm.data) 的结果在自编译产物里 for-of 会崩
-    // (jsbin Array.from+for-of 交互 bug,follow-up);索引遍历规避。
+    // (asm.js Array.from+for-of 交互 bug,follow-up);索引遍历规避。
     const strings = c.asm.strings || [];
     const dataLabels = c.asm.dataLabels || [];
     const dataLabelOff = {};
@@ -373,7 +373,7 @@ export function compileFragment(source, target, captureLayout) {
         buf[off + 2] = (v >>> 16) & 0xff; buf[off + 3] = (v >>> 24) & 0xff;
     };
     // fixup 类型名按架构:CALL(运行时符号)/DATA(.data/字符串引用)。
-    // 用 `key in obj` 判存在(jsbin 自编产物 obj[miss]≠undefined、hasOwnProperty 返坏布尔)。
+    // 用 `key in obj` 判存在(asm.js 自编产物 obj[miss]≠undefined、hasOwnProperty 返坏布尔)。
     const CALL = isX64 ? "rel32" : "bl";
     const DATA = isX64 ? "rip32" : "adrp";
     // 片段内局部分支类型(intra-fragment,目标 label 在本片段代码内,offset >= cs)。
@@ -575,7 +575,7 @@ export function compileFragment(source, target, captureLayout) {
 
 // relocs → 字节缓冲(每条 8B:slotOffset 4B LE + symId 4B LE),供 __engine_exec_reloc。
 export function relocsToBytes(relocs) {
-    // 注:单参数 push——jsbin 自编译产物里 `arr.push(a,b,c,d)` 多参数只 push 第一个
+    // 注:单参数 push——asm.js 自编译产物里 `arr.push(a,b,c,d)` 多参数只 push 第一个
     // (ES bug,follow-up)。故逐字节 push。
     const out = [];
     for (let i = 0; i < relocs.length; i++) {

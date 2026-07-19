@@ -1,5 +1,5 @@
-// JSBin Runtime - Node.js fs
-// Provides file system operations for JSBin compiled binaries
+// asm.js Runtime - Node.js fs
+// Provides file system operations for asm.js compiled binaries
 
 import { JStoCstring, cstringToJS } from "./_string.js";
 import { getSyscall } from "./constants.js";

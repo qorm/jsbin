@@ -1,5 +1,5 @@
 // Buffer read/write/encoding under the g1-compiled compiler. (Buffer.concat is a
-// separate SHARED jsbin bug — broken under node-cli AND g1 — so not exercised here.)
+// separate SHARED asm.js bug — broken under node-cli AND g1 — so not exercised here.)
 const { Buffer } = require("buffer");
 const b = Buffer.from([1, 2, 3, 4]);
 const c = Buffer.alloc(4); c.writeUInt32LE(0x01020304, 0);

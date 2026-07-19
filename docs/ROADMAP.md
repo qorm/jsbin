@@ -50,7 +50,7 @@ GC + 寄存器分配器(性能/可靠性基座,✅ 2026-07-11 收官)
 
 ---
 
-## 1. 方向一:JS 引擎库(libjsbin)
+## 1. 方向一:JS 引擎库(libasmjs)
 
 ### 1.1 目标形态
 
@@ -59,16 +59,16 @@ GC + 寄存器分配器(性能/可靠性基座,✅ 2026-07-11 收官)
 **L1 — AOT 嵌入库**(把某个 JS 程序编译成可链接库)
 
 ```
-asm.js app.js --emit static  → libapp.a  + jsbin.h
-asm.js app.js --emit shared  → libapp.dylib/.so/.dll + jsbin.h
+asm.js app.js --emit static  → libapp.a  + asmjs.h
+asm.js app.js --emit shared  → libapp.dylib/.so/.dll + asmjs.h
 ```
 
 宿主程序(C/C++/Rust/Go/Swift)链接后通过 C ABI 调用:
 
 ```c
-#include "jsbin.h"
-int rc = jsbin_main(argc, argv);            // L1a: 整程序入口
-jsbin_value r = jsbin_call("add", 2, args); // L1b: 导出函数级调用
+#include "asmjs.h"
+int rc = asmjs_main(argc, argv);            // L1a: 整程序入口
+asmjs_value r = asmjs_call("add", 2, args); // L1b: 导出函数级调用
 ```
 
 **L2 — 运行时引擎库**(类 QuickJS 的嵌入式引擎)
@@ -76,20 +76,20 @@ jsbin_value r = jsbin_call("add", 2, args); // L1b: 导出函数级调用
 编译器本体已经是原生代码(自举产物),把它做成库:宿主在运行时喂 JS 源码,asm.js 在内存中生成机器码并执行:
 
 ```c
-jsbin_ctx *ctx = jsbin_new();
-jsbin_value v = jsbin_eval(ctx, "1 + 2");   // 内存代码生成 + 执行
-jsbin_free(ctx);
+asmjs_ctx *ctx = asmjs_new();
+asmjs_value v = asmjs_eval(ctx, "1 + 2");   // 内存代码生成 + 执行
+asmjs_free(ctx);
 ```
 
 ### 1.2 阶段拆解
 
 | 阶段 | 内容 | 关键工作 | 前置 |
 |------|------|----------|------|
-| **L1a** | 静态库 + `jsbin_main` 单入口 | `_start` 改造为可调函数(参数从 argv 注入而非内核栈);堆/GC 初始化惰性化(首次调用时 mmap);Mach-O/ELF 增加 `.o`/归档输出路径;符号导出表 | GC 收尾 |
+| **L1a** | 静态库 + `asmjs_main` 单入口 | `_start` 改造为可调函数(参数从 argv 注入而非内核栈);堆/GC 初始化惰性化(首次调用时 mmap);Mach-O/ELF 增加 `.o`/归档输出路径;符号导出表 | GC 收尾 |
 | **L1b** | 导出函数级 C API | `export function` → C 符号;值封送层:NaN-box ↔ C(int64/double/UTF-8 字符串/ArrayBuffer);错误传播(JS 异常 → 错误码) | L1a |
 | **L1c** | 动态库 + 全平台 | PIC/重定位改造(现产物为绝对寻址可执行体,动态库需 GOT 或加载期重定位表);五目标 dylib/so/dll 出品与 CI 验证 | L1a |
-| **L2a** | 内存执行引擎 | `jsbin_eval`:编译到内存缓冲 → `mmap(PROT_EXEC)` → 跳转执行;W^X 处理(macOS `MAP_JIT` + entitlement、Linux 双映射) | L1b + 可重入改造 |
-| **L2b** | 多实例/隔离 | 全局单例(`_heap_meta`、数据标签、模块注册表)→ `jsbin_ctx` 上下文句柄;每实例独立堆与 GC | L2a |
+| **L2a** | 内存执行引擎 | `asmjs_eval`:编译到内存缓冲 → `mmap(PROT_EXEC)` → 跳转执行;W^X 处理(macOS `MAP_JIT` + entitlement、Linux 双映射) | L1b + 可重入改造 |
+| **L2b** | 多实例/隔离 | 全局单例(`_heap_meta`、数据标签、模块注册表)→ `asmjs_ctx` 上下文句柄;每实例独立堆与 GC | L2a |
 | **L2c** | **JS 语言级 `eval`/`new Function` + 动态 `import()`**(2026-07-10 增补;动态 import 归属 2026-07-11 修正,用户指定) | 引擎库形态下编译器常驻进程内,`eval` 不再与 AOT 冲突:JS 代码里的 `eval(src)` → 引擎内存编译 → 同堆执行;作用域语义分层交付(先 全局作用域 eval/`new Function`,再 直接 eval 的词法作用域捕获——需要编译器为含 eval 的函数关闭寄存器/槽位优化并导出作用域表)。**动态 `import(运行时 specifier)` 同理归此**:运行时加载+编译任意模块需常驻编译器,与 eval 同一能力面（`import(变量)`/`import(拼接)`）。**独立可执行产物(L1/AOT)维持无 eval/无动态 import**——封闭世界是单二进制的前提;二者是引擎库(L2)专属能力,文档须明确两种形态的差异。注:动态 `import("./字面量.js")`（编译期可知 specifier）是 AOT 可做子集（静态链接 + Promise 包装），若需可在 E 系单独实现 | L2a/L2b |
 
 ### 1.3 结构性风险
@@ -101,9 +101,9 @@ jsbin_free(ctx);
 
 ### 1.4 验收标准
 
-- L1a: C 程序链接 `libapp.a` 后 `jsbin_main` 跑通现有全部 fixtures 语义,产物大小 ≤ 独立可执行 + 100KB。
+- L1a: C 程序链接 `libapp.a` 后 `asmjs_main` 跑通现有全部 fixtures 语义,产物大小 ≤ 独立可执行 + 100KB。
 - L1b: 双向调用(C→JS、JS 回调 C 函数指针)demo + 封送单测。
-- L2a: `jsbin_eval` 在三 OS 跑通 ES 子集冒烟集;同一进程串行 eval 1000 次无泄漏(RSS 平台期)。
+- L2a: `asmjs_eval` 在三 OS 跑通 ES 子集冒烟集;同一进程串行 eval 1000 次无泄漏(RSS 平台期)。
 
 ---
 

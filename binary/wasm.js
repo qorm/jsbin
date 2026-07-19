@@ -1,4 +1,4 @@
-// JSBin WebAssembly 模块 writer(零依赖手写,与 ELF/PE writer 同级)
+// asm.js WebAssembly 模块 writer(零依赖手写,与 ELF/PE writer 同级)
 // [M3 分段] 产出 K 个段函数 + 1 个蹦床:寄存器堆是模块级 mutable globals,
 // 每段覆盖 segSize 个连续标签、内嵌自己的派发 loop(block_exit{ loop{ block×n{
 // br_table(pc-first) } 切片… } });目标不在本段 → br_table default 落 block_exit

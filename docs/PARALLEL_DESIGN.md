@@ -311,7 +311,7 @@ park/unpark 骑协程 yield。**本设计要求 M1 遵守**:
 >   `_call_stack_top` 及整个 Error 影子调用栈(`_stack_push`/`_stack_pop`/`_stack_capture`/
 >   `_error_new`)只存在于 `runtime/types/error/index.js`,而该文件的 `ErrorGenerator` **从未被
 >   `runtime/index.js` 的 `RuntimeGenerator` 实例化**(全仓无 import)——经典 asm.js 死代码陷阱。
->   活的错误路径把 `new TypeError(msg)` 等编译为**普通对象** `{name,message,__jsbin_err}`
+>   活的错误路径把 `new TypeError(msg)` 等编译为**普通对象** `{name,message,__asmjs_err}`
 >   (`compiler/functions/statements.js:emitThrowTypeError`),不经影子栈、无 `.stack` 捕获。
 >   故 `_call_stack*` **无需 per-M 化**(无活槽可竞争);§1.2 D 组该行应删。曾尝试指针化时,
 >   在 `_start`(活代码)加对死标签 `_call_stack_buf` 的 lea → 链接期 `Unknown label`,已回退。

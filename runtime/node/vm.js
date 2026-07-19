@@ -1,4 +1,4 @@
-// JSBin Runtime - Node.js vm
+// asm.js Runtime - Node.js vm
 
 export class vm {
     static createContext(context) { return context || {}; }

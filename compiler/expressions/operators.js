@@ -1,4 +1,4 @@
-// JSBin 编译器 - 运算符编译
+// asm.js 编译器 - 运算符编译
 // 编译二元运算、一元运算、逻辑运算等
 
 import { VReg } from "../../vm/index.js";
@@ -299,7 +299,7 @@ export const OperatorCompiler = {
             // [#25] 非有限结果(NaN/±Inf)不折叠:NaN 与 NaN-boxing 冲突,且自举侧
             // 字面量发射对非有限值发散(gen1 编译含 0/0 的源码挂死)。留给运行时
             // 算术路径产生正确位模式。检测用 result-result!==0(NaN/±Inf 均真;
-            // 不能用 ===Infinity——Infinity 标识符在 jsbin 里编译为 0)。
+            // 不能用 ===Infinity——Infinity 标识符在 asm.js 里编译为 0)。
             if (result !== null && typeof result === "number" &&
                 (result !== result || result - result !== 0 ||
                  (result !== 0 && result * 2 === 0))) {
@@ -605,7 +605,7 @@ export const OperatorCompiler = {
                     // undefined 字面量：ToNumber(undefined) = NaN
                     // 直接发打印友好的 NaN 位 0x7FF0…0001(high16=0x7FF0<避开 int0 标签,
                     // 打印 "NaN")。原用 floatToInt64Bits(NaN):其 `value !== value` NaN 守卫
-                    // 在 jsbin 语义下按位为假(NaN≡int0 别名),自编译时(gen1+)返回的不是
+                    // 在 asm.js 语义下按位为假(NaN≡int0 别名),自编译时(gen1+)返回的不是
                     // 0x7FF8 而是归一化垃圾 → 与 node(gen0)分歧 → 自举振荡。硬编码消歧。
                     this.vm.movImm64(VReg.RET, 0x7FF0000000000001n);
                     return;
@@ -812,7 +812,7 @@ export const OperatorCompiler = {
         // 变量左操作数(装箱数组等)被 f2i 毁掉 → 恒 false(字面量恰走保箱子路径
         // 才侥幸为 true,#15 实锤)。右操作数 Array/Object 经 members.js 编译为
         // 内建标识 1/2,用户类为类信息对象(原型链检查未实现 → false)。
-        // [#36] e instanceof Error 族:编译期内联——对象 tag + __jsbin_err 标记,
+        // [#36] e instanceof Error 族:编译期内联——对象 tag + __asmjs_err 标记,
         // 具体类再比 name(_strict_eq 内容比较);Error 基类命中所有子类 ✓
         if (op === "instanceof" && expr.right && expr.right.type === "Identifier" &&
             ["Error", "TypeError", "RangeError", "SyntaxError", "ReferenceError",
@@ -827,7 +827,7 @@ export const OperatorCompiler = {
             this.vm.cmpImm(VReg.V1, 0x7FFD);
             this.vm.jne(eiF);
             this.vm.load(VReg.A0, VReg.FP, eiSlot);
-            this.emitBoxedStringKey("__jsbin_err", VReg.A1);
+            this.emitBoxedStringKey("__asmjs_err", VReg.A1);
             this.vm.call("_object_has");
             this.vm.cmpImm(VReg.RET, 0);
             this.vm.jeq(eiF);
@@ -852,7 +852,7 @@ export const OperatorCompiler = {
 
         // [#66 Phase1b] RegExp instanceof:RegExp 是纯 JS shim 对象(__RE_new 造,
         // type 字节=TYPE_OBJECT 而非 TYPE_REGEXP),靠品牌属性 __isRegExp 判定
-        // (仿 Error 族 __jsbin_err):tag 0x7FFD + _object_has "__isRegExp"。
+        // (仿 Error 族 __asmjs_err):tag 0x7FFD + _object_has "__isRegExp"。
         if (op === "instanceof" && expr.right && expr.right.type === "Identifier" &&
             expr.right.name === "RegExp") {
             const riF = this.ctx.newLabel("rinst_f");

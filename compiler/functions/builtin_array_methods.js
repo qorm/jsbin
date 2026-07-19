@@ -1,4 +1,4 @@
-// JSBin 编译器 - Array 方法编译
+// asm.js 编译器 - Array 方法编译
 // 从 builtin_methods.js 按功能拆出(2026-07-14)。方法经 this 解析,与主 mixin 同一原型。
 
 import { VReg } from "../../vm/index.js";

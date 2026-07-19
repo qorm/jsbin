@@ -1,4 +1,4 @@
-// JSBin Runtime - String Utilities
+// asm.js Runtime - String Utilities
 // Helper functions for C string <-> JS string conversion
 
 function cstringToJS(ptr) {

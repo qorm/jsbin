@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import syncFs from "node:fs";
 
-const path = "/tmp/jsbin-builtin-node-scheme-fs-promises.txt";
+const path = "/tmp/asmjs-builtin-node-scheme-fs-promises.txt";
 const input = "fixture-ok";
 
 async function main() {

@@ -1,4 +1,4 @@
-// JSBin WebAssembly (wasm32) 汇编器
+// asm.js WebAssembly (wasm32) 汇编器
 // 与 ARM64Assembler/X64Assembler 同一契约:code/labels/data/addString/addDataLabel/
 // addDataQword/addFloat64/finalize/fixupAll。code 是"巨函数"体的裸 wasm 指令流,
 // 标签按定义顺序获得 pc 序号;跳转/调用发射 padded-LEB 占位立即数,fixupAll 统一回填
@@ -47,11 +47,11 @@ export class Wasm32Assembler {
 
         // [M3] 段大小(每段标签数,均匀切分 → 蹦床按 pc/segSize 常数除法路由)。
         // 缺省 256:实测扫 128/256/384/512/1024,256 全面最优(小段 Turbofan 编得动
-        // 且编得好;大段撞优化崖,1024 起全面劣化)。JSBIN_WASM_SEG 仅供 node 驱动的
+        // 且编得好;大段撞优化崖,1024 起全面劣化)。ASMJS_WASM_SEG 仅供 node 驱动的
         // 实验(编译产物 env 恒空 → 恒走缺省,gen1/自举产物字节一致)。
         let seg = 256;
-        if (typeof process !== "undefined" && process.env && process.env.JSBIN_WASM_SEG) {
-            const n = Number(process.env.JSBIN_WASM_SEG);
+        if (typeof process !== "undefined" && process.env && process.env.ASMJS_WASM_SEG) {
+            const n = Number(process.env.ASMJS_WASM_SEG);
             if (n > 0) seg = n;
         }
         this.segSize = seg;

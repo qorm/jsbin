@@ -1,4 +1,4 @@
-// JSBin 解析器 - 表达式解析
+// asm.js 解析器 - 表达式解析
 // 解析 JavaScript 表达式
 
 import { TokenType } from "../lexer/token.js";
@@ -156,7 +156,7 @@ export const ExpressionParser = {
     },
 
     // [#34] tag`a${x}b` → CallExpression(tag, [ArrayExpression(["a","b"]), x])
-    // (解析期脱糖,零 codegen)。cooked 数组正常;但 strings.raw 需数组自定义属性,jsbin 数组
+    // (解析期脱糖,零 codegen)。cooked 数组正常;但 strings.raw 需数组自定义属性,asm.js 数组
     // 暂不支持(赋任意字符串键会毁堆),故普通 tag 的 strings.raw 仍缺(记偏差,见报告)。
     // String.raw`...` 特化:脱糖为 raw quasi 与表达式的字符串拼接,不依赖数组 .raw,可用。
     parseTaggedTemplate(tag) {
@@ -384,7 +384,7 @@ export const ExpressionParser = {
             }
             // 如果不是箭头函数，我们需要回退吗？Pratt 解析器很难回退。
             // 但在 JS 中，(a, b) 也是合法的序列表达式。
-            // 假设 JSBin 暂时不单独处理 (a, b) 表达式，除非是箭头函数。
+            // 假设 asm.js 暂时不单独处理 (a, b) 表达式，除非是箭头函数。
         }
 
         let expr = this.parseExpression(Precedence.LOWEST);

@@ -1,4 +1,4 @@
-// JSBin x64 后端
+// asm.js x64 后端
 // 将虚拟指令翻译为 x86_64 机器码
 
 import { Backend } from "./base.js";

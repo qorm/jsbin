@@ -1,4 +1,4 @@
-// JSBin Runtime - Node.js http (minimal but real HTTP/1.1 over async net sockets)
+// asm.js Runtime - Node.js http (minimal but real HTTP/1.1 over async net sockets)
 //
 // Built entirely on top of the round-4 event-driven net layer: the readiness
 // poll pump in net.js fires 'connection'/'data'/'end' on the underlying TCP
@@ -536,7 +536,7 @@ class ClientRequest extends EventEmitter {
 // is parked idle in `freeSockets`, and the next request to the same name pulls
 // it back out instead of dialing a fresh connection.
 //
-// Clean process exit: jsbin's event loop (net.js poll pump) runs as long as any
+// Clean process exit: asm.js's event loop (net.js poll pump) runs as long as any
 // fd is watched. A parked free socket is therefore _stopRead()'d (its poll
 // watcher removed) so it never keeps the loop alive — the open fd is closed by
 // the OS on exit, or eagerly by `agent.destroy()`. Per-request listener reset:

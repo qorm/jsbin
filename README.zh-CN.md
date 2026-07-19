@@ -1,6 +1,6 @@
 # asm.js
 
-> 命名说明:产品正式名称为 **asm.js**(主页 https://asm.js.cn),于 v0.1 公开重初始化(2026-07-19)时由原内部代号 "jsbin" 更名。少数内部标识符(`jsbin_*` C API 符号、`JSBIN_*` 环境变量)仍沿用旧前缀,将另行迁移。
+> 命名说明:产品正式名称为 **asm.js**(主页 https://asm.js.cn),于 v0.1 公开重初始化(2026-07-19)时由原内部代号 "jsbin" 更名。内部标识符(C API 符号、环境变量)统一使用 `asmjs_*`/`ASMJS_*` 前缀。
 
 [English README](./README.md)
 

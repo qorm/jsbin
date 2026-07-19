@@ -1,4 +1,4 @@
-// JSBin - JavaScript 词法单元定义
+// asm.js - JavaScript 词法单元定义
 // Token 类型和关键字映射
 
 // Token 类型常量

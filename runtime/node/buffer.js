@@ -1,5 +1,5 @@
-// JSBin Runtime - Node.js Buffer
-// Provides Buffer class for JSBin compiled binaries
+// asm.js Runtime - Node.js Buffer
+// Provides Buffer class for asm.js compiled binaries
 
 // 十六进制字符 → 值(0-15),非法返 -1
 function _hexVal(cc) {
@@ -88,7 +88,7 @@ export class Buffer {
         return 0;
     }
 
-    // Buffer.byteLength(value, encoding): 字节长度。jsbin 字节模型下字符串按
+    // Buffer.byteLength(value, encoding): 字节长度。asm.js 字节模型下字符串按
     // charCode 逐字节(ASCII 与 Node utf8 一致;非 ASCII 记偏差);Buffer/类数组取 length。
     static byteLength(value, encoding) {
         if (typeof value === "string") return value.length;

@@ -1,4 +1,4 @@
-// JSBin - JavaScript 语言前端
+// asm.js - JavaScript 语言前端
 // 提供词法分析、语法分析和语义分析功能
 
 // 词法分析

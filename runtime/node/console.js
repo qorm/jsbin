@@ -1,5 +1,5 @@
-// JSBin Runtime - Node.js console
-// Provides console object for JSBin compiled binaries
+// asm.js Runtime - Node.js console
+// Provides console object for asm.js compiled binaries
 
 import { syscallWrite } from "./_string.js";
 import { getSyscall } from "./constants.js";

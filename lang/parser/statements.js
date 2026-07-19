@@ -1,4 +1,4 @@
-// JSBin 解析器 - 语句解析
+// asm.js 解析器 - 语句解析
 // 解析 JavaScript 语句
 
 import { TokenType } from "../lexer/token.js";

@@ -1,4 +1,4 @@
-// JSBin 运行时 - process 全局对象
+// asm.js 运行时 - process 全局对象
 // 提供 Node.js 兼容的 process 对象
 
 import { VReg } from "../../vm/index.js";
@@ -356,7 +356,7 @@ export class ProcessGenerator {
     //
     // Node's CommonJS loader installs module.exports in the cache BEFORE
     // running the module body, so a cyclic require() observes the partial
-    // exports object. jsbin's default AOT model runs every module body inline
+    // exports object. asm.js's default AOT model runs every module body inline
     // in _main in a fixed topological order sharing one stack frame, which
     // cannot interleave a true cycle (each module needs the other's data) and
     // clobbers per-module locals across the reused frame. To model Node here,

@@ -1,4 +1,4 @@
-// JSBin 编译上下文
+// asm.js 编译上下文
 // 管理变量、标签、作用域和函数
 
 import { Type } from "./types.js";
@@ -115,7 +115,7 @@ export class CompileContext {
     getMainCapturedVar(name) {
         // [#32] locals/mainCapturedVars 是普通 {} 字典:node 语义下用户标识符
         // constructor/toString/valueOf 等会命中 Object.prototype(truthy 的函数),
-        // jsbin 语义只查自有属性返回 falsy —— 二者分歧曾让 gen1 跳过槽位分配,
+        // asm.js 语义只查自有属性返回 falsy —— 二者分歧曾让 gen1 跳过槽位分配,
         // 错编 compileClassDeclaration(gen1/gen2 全部 2.6MB 差异的单点根因)。
         // 守卫:合法值恒为字符串/数值,非常规类型一律视为未定义。
         const mcv = this.mainCapturedVars[name];
@@ -133,7 +133,7 @@ export class CompileContext {
 
     // 获取局部变量偏移
     // [#32] 双语义守卫:合法偏移恒为数值(负数)。node 下字典 miss 可能沿原型链
-    // 返回函数(如 name="constructor"),jsbin 下返回 raw 0 —— 统一归一为 0(未分配)。
+    // 返回函数(如 name="constructor"),asm.js 下返回 raw 0 —— 统一归一为 0(未分配)。
     getLocal(name) {
         const v = this.locals[name];
         if (v && typeof v !== "number") return 0;

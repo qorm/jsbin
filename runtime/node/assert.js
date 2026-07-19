@@ -1,5 +1,5 @@
-// JSBin Runtime - Node.js assert (basic subset)
-// 注:jsbin 里函数无法挂属性,故 assert 以对象形式提供(assert.ok/equal/...);
+// asm.js Runtime - Node.js assert (basic subset)
+// 注:asm.js 里函数无法挂属性,故 assert 以对象形式提供(assert.ok/equal/...);
 // 裸 assert(value) 调用形态不支持,用 assert.ok(value)。
 
 function _fail(message) {

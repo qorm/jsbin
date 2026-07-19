@@ -1,4 +1,4 @@
-// JSBin 运行时 - Date 支持
+// asm.js 运行时 - Date 支持
 // 实现 JavaScript Date 对象的基本功能
 
 import { VReg } from "../../../vm/index.js";

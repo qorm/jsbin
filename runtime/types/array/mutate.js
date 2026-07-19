@@ -1,4 +1,4 @@
-// JSBin 数组运行时 - 原地修改方法
+// asm.js 数组运行时 - 原地修改方法
 // shift, unshift, reverse, fill
 
 import { VReg } from "../../../vm/registers.js";

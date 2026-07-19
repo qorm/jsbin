@@ -1,9 +1,9 @@
-// JSBin - 闭包分析模块
+// asm.js - 闭包分析模块
 // 分析函数表达式中捕获的外部变量
 
 // 检查是否是内置函数或全局对象
 export function isBuiltinOrGlobal(name) {
-    const builtins = ["print", "console", "Promise", "Uint8Array", "Buffer", "Math", "sleep", "Array", "Object", "String", "Number", "Boolean", "Date", "RegExp", "JSON", "Error", "undefined", "null", "NaN", "Infinity", "globalThis", "queueMicrotask", "__jsbin_setTimeout", "__jsbin_setImmediate", "__jsbin_queueMicrotask", "__jsbin_clearTimer"];
+    const builtins = ["print", "console", "Promise", "Uint8Array", "Buffer", "Math", "sleep", "Array", "Object", "String", "Number", "Boolean", "Date", "RegExp", "JSON", "Error", "undefined", "null", "NaN", "Infinity", "globalThis", "queueMicrotask", "__asmjs_setTimeout", "__asmjs_setImmediate", "__asmjs_queueMicrotask", "__asmjs_clearTimer"];
     return builtins.includes(name);
 }
 

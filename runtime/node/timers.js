@@ -1,17 +1,17 @@
-// JSBin Runtime - Node.js timers
+// asm.js Runtime - Node.js timers
 // setTimeout / setImmediate / queueMicrotask 委托给编译器内建的事件循环桥接
-// 函数（__jsbin_*），退出前由 _ev_run drain。返回值是句柄对象，可用于
+// 函数（__asmjs_*），退出前由 _ev_run drain。返回值是句柄对象，可用于
 // clearTimeout / clearImmediate 取消。
 
 export function setTimeout(callback, delay, ...args) {
-    return __jsbin_setTimeout(callback);
+    return __asmjs_setTimeout(callback);
 }
 
 export function clearTimeout(handle) {
-    __jsbin_clearTimer(handle);
+    __asmjs_clearTimer(handle);
 }
 
-// setInterval: jsbin has no real repeat timer, but the event loop re-drains
+// setInterval: asm.js has no real repeat timer, but the event loop re-drains
 // microtasks/immediates until they run out. We model an interval as a callback
 // that reschedules itself via setImmediate until cleared. This makes the common
 // "setInterval + clearInterval after N ticks" pattern terminate correctly.
@@ -22,9 +22,9 @@ export function setInterval(callback, period, ...args) {
     const tick = () => {
         if (handle._cancelled) return;
         callback(...args);
-        if (!handle._cancelled) __jsbin_setImmediate(tick);
+        if (!handle._cancelled) __asmjs_setImmediate(tick);
     };
-    __jsbin_setImmediate(tick);
+    __asmjs_setImmediate(tick);
     return handle;
 }
 
@@ -33,11 +33,11 @@ export function clearInterval(handle) {
 }
 
 export function setImmediate(callback, ...args) {
-    return __jsbin_setImmediate(callback);
+    return __asmjs_setImmediate(callback);
 }
 
 export function clearImmediate(handle) {
-    __jsbin_clearTimer(handle);
+    __asmjs_clearTimer(handle);
 }
 
 export default { setTimeout, clearTimeout, setInterval, clearInterval, setImmediate, clearImmediate };

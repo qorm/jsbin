@@ -1,4 +1,4 @@
-// JSBin 运行时 - Promise 支持
+// asm.js 运行时 - Promise 支持
 // Promise 对象为 NaN-boxed 对象值(tag 0x7ffd)，底层是堆对象。
 // resolve/reject 以闭包对象的形式传给 executor；then/catch 在 promise 已 settled
 // 时同步触发回调，pending 时挂到链表，settle 时统一触发。await 走协程挂起/恢复，
@@ -999,7 +999,7 @@ export class PromiseGenerator {
         vm.asm.registerRuntimeString("_str_k_name", "name");
         vm.asm.registerRuntimeString("_str_k_message", "message");
         vm.asm.registerRuntimeString("_str_k_errors", "errors");
-        vm.asm.registerRuntimeString("_str_k_jsbinerr", "__jsbin_err");
+        vm.asm.registerRuntimeString("_str_k_asmjserr", "__asmjs_err");
         vm.label("_Promise_any");
         vm.prologue(48, [VReg.S0, VReg.S1, VReg.S2, VReg.S3, VReg.S4, VReg.S5]);
         vm.mov(VReg.S0, VReg.A0); // input array
@@ -1054,7 +1054,7 @@ export class PromiseGenerator {
         vm.mov(VReg.RET, VReg.S1);
         vm.epilogue([VReg.S0, VReg.S1, VReg.S2, VReg.S3, VReg.S4, VReg.S5], 48);
         vm.label("_pany_allrej");
-        // 全 rejected → 建 AggregateError 普通对象 {name,message,errors,__jsbin_err}
+        // 全 rejected → 建 AggregateError 普通对象 {name,message,errors,__asmjs_err}
         // (与编译器 new Error 同构:_object_new + _object_define,不动 error 运行时)。
         vm.call("_object_new");
         vm.movImm64(VReg.V1, MASK48);
@@ -1080,9 +1080,9 @@ export class PromiseGenerator {
         vm.lea(VReg.A1, "_str_k_errors");
         vm.mov(VReg.A2, VReg.S3);
         vm.call("_object_define");
-        // __jsbin_err = true(供 instanceof Error 判别)
+        // __asmjs_err = true(供 instanceof Error 判别)
         vm.mov(VReg.A0, VReg.S0);
-        vm.lea(VReg.A1, "_str_k_jsbinerr");
+        vm.lea(VReg.A1, "_str_k_asmjserr");
         vm.lea(VReg.V0, "_js_true");
         vm.load(VReg.A2, VReg.V0, 0);
         vm.call("_object_define");

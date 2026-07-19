@@ -1,4 +1,4 @@
-// JSBin 编译器 - 数组回调方法编译
+// asm.js 编译器 - 数组回调方法编译
 // 编译 forEach, map, filter, reduce, find, some, every 等数组回调方法
 
 import { VReg } from "../../vm/index.js";

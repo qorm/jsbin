@@ -1,4 +1,4 @@
-// JSBin 数组运行时 - 转换方法
+// asm.js 数组运行时 - 转换方法
 // slice, concat, join
 
 import { VReg } from "../../../vm/registers.js";

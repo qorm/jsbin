@@ -1,5 +1,5 @@
 {
-  "description": "imported local module should be able to schedule a callback with __jsbinNextTick",
+  "description": "imported local module should be able to schedule a callback with __asmjsNextTick",
   "expect": {
     "parse": true,
     "compile": true,

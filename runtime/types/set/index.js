@@ -1,4 +1,4 @@
-// JSBin 运行时 - Set 支持
+// asm.js 运行时 - Set 支持
 // 实现 JavaScript Set：插入序链表 + 哈希桶索引（均摊 O(1) add/has/delete）
 //
 // Set 对象内存布局（48 字节头）:

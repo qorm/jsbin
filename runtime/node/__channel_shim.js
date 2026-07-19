@@ -1,4 +1,4 @@
-// [方言] Channel(capacity=0):js f(x) 协程派发配套的 CSP 通道(Go channel 之 jsbin 版)。
+// [方言] Channel(capacity=0):js f(x) 协程派发配套的 CSP 通道(Go channel 之 asm.js 版)。
 // 骑在 Promise/协程挂起-唤醒原语上:
 //   ch.send(v)        —— 返回 Promise。缓冲满(或 cap=0 无接收者等待)时挂起发送方;
 //                        cap=0 为会合语义:与 recv 一一配对。向已关闭通道 send 抛错。

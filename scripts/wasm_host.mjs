@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// JSBin wasm 宿主 shim(M2):node 下运行 `--target wasm32-wasi` 产物。
+// asm.js wasm 宿主 shim(M2):node 下运行 `--target wasm32-wasi` 产物。
 //   node scripts/wasm_host.mjs <program.wasm> [args...]
 // 提供 env.__syscall(num, a0..a5) -> i64。号名空间 = linux-x64(设计文档 §2);
 // 兼容层同时接受 macos-x64 别名号(0x2000000|n)——runtime 尚存少量 per-os 三元
@@ -16,14 +16,14 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 // [M3] 分段模型(每段 ≤256 标签)下 V8 tier-up 稳定且显著更快(GC 基准 45s→35s),
-// 缺省放行 V8 默认分层。JSBIN_WASM_LIFTOFF=1 可诊断性钉回 Liftoff-only(M1 巨函数
+// 缺省放行 V8 默认分层。ASMJS_WASM_LIFTOFF=1 可诊断性钉回 Liftoff-only(M1 巨函数
 // 时代 Turboshaft 对数千前驱的派发 loop 头做每块快照合并 → Zone OOM,该模式是当时
 // 的强制取舍;V8 启动后冻结旗标,只能带 CLI 旗标自我重启一次,守卫环境变量防递归)。
-if (!process.env.JSBIN_WASM_HOST_CHILD && process.env.JSBIN_WASM_LIFTOFF) {
+if (!process.env.ASMJS_WASM_HOST_CHILD && process.env.ASMJS_WASM_LIFTOFF) {
     const self = fileURLToPath(import.meta.url);
     const res = spawnSync(process.execPath, ["--no-wasm-tier-up", "--no-wasm-dynamic-tiering", self, ...process.argv.slice(2)], {
         stdio: "inherit",
-        env: { ...process.env, JSBIN_WASM_HOST_CHILD: "1" },
+        env: { ...process.env, ASMJS_WASM_HOST_CHILD: "1" },
     });
     process.exit(res.status === null ? 134 : res.status);
 }
@@ -42,7 +42,7 @@ const progArgs = process.argv.slice(3);
 
 let memory = null;
 let arenaPtr = HEAP_FLOOR;
-const trace = !!process.env.JSBIN_WASM_TRACE;
+const trace = !!process.env.ASMJS_WASM_TRACE;
 
 function ensureMemory(byteEnd) {
     const cur = memory.buffer.byteLength;
@@ -255,7 +255,7 @@ function syscall(num, a0, a1, a2, a3, a4, a5) {
             return sysClockGettime(Number(a0), Number(a1));
         default:
             throw new Error(
-                `jsbin wasm host: unimplemented syscall ${n} (0x${n.toString(16)}) args=[${a0}, ${a1}, ${a2}, ${a3}, ${a4}, ${a5}] — runtime os-branch leak? see docs/WASM_DESIGN.md`
+                `asm.js wasm host: unimplemented syscall ${n} (0x${n.toString(16)}) args=[${a0}, ${a1}, ${a2}, ${a3}, ${a4}, ${a5}] — runtime os-branch leak? see docs/WASM_DESIGN.md`
             );
     }
 }
@@ -273,7 +273,7 @@ try {
     instance.exports._start();
 } catch (e) {
     // process.exit 在 syscall 里直接退;走到这的是真异常(trap 等)
-    console.error("jsbin wasm host: trap:", e && e.message ? e.message : e);
+    console.error("asm.js wasm host: trap:", e && e.message ? e.message : e);
     if (e && e.stack && trace) console.error(e.stack);
     process.exit(134);
 }

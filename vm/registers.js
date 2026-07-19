@@ -1,4 +1,4 @@
-// JSBin 虚拟寄存器定义
+// asm.js 虚拟寄存器定义
 // 使用虚拟寄存器，由后端映射到真实寄存器
 
 export const VReg = {

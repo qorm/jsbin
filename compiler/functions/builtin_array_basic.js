@@ -1,4 +1,4 @@
-// JSBin 编译器 - 数组基础方法编译
+// asm.js 编译器 - 数组基础方法编译
 // 编译 push, pop, slice, indexOf, includes 等数组方法
 
 import { VReg } from "../../vm/index.js";

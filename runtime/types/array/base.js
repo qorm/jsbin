@@ -1,4 +1,4 @@
-// JSBin 数组运行时 - 基础操作
+// asm.js 数组运行时 - 基础操作
 // push, pop, get, set, length, at, newWithSize
 
 import { VReg } from "../../../vm/registers.js";

@@ -1,4 +1,4 @@
-// JSBin Runtime - Node.js querystring (basic subset)
+// asm.js Runtime - Node.js querystring (basic subset)
 
 // 百分号解码:%XX -> 字符,'+' -> 空格。字节模型下按 charCode 处理。
 function _hexVal(c) {

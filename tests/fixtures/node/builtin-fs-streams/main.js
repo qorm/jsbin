@@ -1,6 +1,6 @@
 import fs from "node:fs";
 
-const path = "/tmp/jsbin_fx_fs_streams.txt";
+const path = "/tmp/asmjs_fx_fs_streams.txt";
 
 // createWriteStream: multiple writes + end, reported on 'finish'.
 const ws = fs.createWriteStream(path);

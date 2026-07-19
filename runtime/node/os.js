@@ -1,7 +1,7 @@
-// JSBin Runtime - Node.js os module
+// asm.js Runtime - Node.js os module
 // Provides OS utilities
 
-// node os.platform() 用 "darwin"(非 jsbin 内部的 "macos");按实际目标平台派生。
+// node os.platform() 用 "darwin"(非 asm.js 内部的 "macos");按实际目标平台派生。
 function _plat() { const p = __get_process(); return (p && p.platform) || "macos"; }
 export function platform() { const p = _plat(); return p === "macos" ? "darwin" : p; }
 export function arch() { const p = __get_process(); return (p && p.arch) || "arm64"; }
@@ -12,7 +12,7 @@ export function type() {
 export function tmpdir() { return "/tmp"; }
 export function homedir() { return "/Users/user"; }
 export function endianness() { return "LE"; }
-export function hostname() { return "jsbin"; }
+export function hostname() { return "asm.js"; }
 export function release() { return "1.0.0"; }
 export function uptime() { return 0; }
 export function loadavg() { return [0, 0, 0]; }
@@ -55,11 +55,11 @@ export function networkInterfaces() {
 }
 // os.machine() / os.version(): 平台派生占位
 export function machine() { return arch() === "arm64" ? "arm64" : "x86_64"; }
-export function version() { return "JSBin OS"; }
+export function version() { return "asm.js OS"; }
 // os.availableParallelism(): 逻辑 CPU 数(无探测,返回 cpus 长度)
 export function availableParallelism() { return cpus().length; }
 
-// os.EOL 是字符串属性(非函数);posix 恒 "\n"(jsbin 路径/平台统一)
+// os.EOL 是字符串属性(非函数);posix 恒 "\n"(asm.js 路径/平台统一)
 export const EOL = "\n";
 export const devNull = "/dev/null";
 

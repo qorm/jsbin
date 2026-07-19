@@ -87,7 +87,7 @@ asm.js 的产品形态是零依赖单二进制 AOT 编译器:词法/语法/codeg
 - rpath:无 LC_RPATH / DT_RPATH / DT_RUNPATH;产出 install_name 固定 `@rpath/<basename>`(`generator.js:196`)。
 - Linux arm64 动态消费通路:`elf_dynamic.js` 的 `EM_X86_64`(:267)与 interp(:188)硬编码。
 - 封送层与 GC handle/pin API;JS 语言表面无任何 declare/extern/ffi 语法。
-- 公开 `jsbin_eval` C ABI 入口:`engine/` 的 jsbinEval/jsbinFunction 是 throw 骨架,eval 实际走 `runtime/node/__eval_shim.js`。
+- 公开 `asmjs_eval` C ABI 入口:`engine/` 的 asmjsEval/asmjsFunction 是 throw 骨架,eval 实际走 `runtime/node/__eval_shim.js`。
 
 ### 2.2 实证结果(2026-07-19,macOS arm64 真机,产物 `.agent-work/c-interop-probe/`)
 

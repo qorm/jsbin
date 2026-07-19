@@ -1,7 +1,7 @@
 import fs from "fs";
 const man = JSON.parse(fs.readFileSync("es_tests/manifest.json"));
 const nodeR = JSON.parse(fs.readFileSync("es_tests/node_result.json"));
-const jsR = JSON.parse(fs.readFileSync("es_tests/jsbin_result.json"));
+const jsR = JSON.parse(fs.readFileSync("es_tests/asmjs_result.json"));
 const byId = Object.fromEntries(man.map(t=>[t.id,t]));
 // 只比对 node-PASS(feature 在 node 真实工作)
 const applicable = man.filter(t=>nodeR[t.id]==="PASS");
@@ -22,10 +22,10 @@ for (const t of applicable){
   cats[g].items.push({name:t.name, v});
 }
 const total = applicable.length;
-console.log("=== JSBin ES 标准差分测试报告(基于 kangax compat-table)===");
+console.log("=== asm.js ES 标准差分测试报告(基于 kangax compat-table)===");
 console.log(`可比对(node-PASS)测试: ${total} / 生成 ${man.length}`);
-console.log(`  ✅ 支持(jsbin PASS):        ${sup}  (${(sup/total*100).toFixed(1)}%)`);
-console.log(`  ❌ 不支持(jsbin FAIL):      ${notsup}  (${(notsup/total*100).toFixed(1)}%)`);
+console.log(`  ✅ 支持(asm.js PASS):        ${sup}  (${(sup/total*100).toFixed(1)}%)`);
+console.log(`  ❌ 不支持(asm.js FAIL):      ${notsup}  (${(notsup/total*100).toFixed(1)}%)`);
 console.log(`  🚫 编译失败(不支持语法):    ${cfail}  (${(cfail/total*100).toFixed(1)}%)`);
 console.log(`  💥 崩溃/无输出:             ${crash}  (${(crash/total*100).toFixed(1)}%)`);
 console.log("");

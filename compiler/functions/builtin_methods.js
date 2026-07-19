@@ -1,4 +1,4 @@
-// JSBin 编译器 - 内置类型方法编译
+// asm.js 编译器 - 内置类型方法编译
 // 编译 Math、Array、Map、Set、Date、RegExp 等内置类型的方法
 
 import { VReg } from "../../vm/index.js";
@@ -69,7 +69,7 @@ export const BuiltinMethodCompiler = {
                 return true;
 
             case "codePointAt":
-                // str.codePointAt(index):ASCII/BMP 与 charCodeAt 等价(jsbin UTF-8
+                // str.codePointAt(index):ASCII/BMP 与 charCodeAt 等价(asm.js UTF-8
                 // 字节语义下,astral 码点索引本属深水,不追)。此前无 case → default 崩溃。
                 // 别名到 charCodeAt(同接收者/索引处理),把崩溃变 ASCII 正确。
             case "charCodeAt":
@@ -541,14 +541,14 @@ export const BuiltinMethodCompiler = {
                 return true;
 
             case "normalize":
-                // str.normalize([form]):jsbin 字节模型下 ASCII/已规范化即恒等,返回原串。
+                // str.normalize([form]):asm.js 字节模型下 ASCII/已规范化即恒等,返回原串。
                 // 此前未实现 → 通用派发崩。偏差:不做真 NFC/NFD 组合字重排(纯文本正确)。
                 this.vm.pop(VReg.A0);
                 this.vm.mov(VReg.RET, VReg.A0);
                 return true;
 
             case "localeCompare":
-                // str.localeCompare(other):jsbin 无 ICU,退化为逐字节(码点)比较返回 -1/0/1。
+                // str.localeCompare(other):asm.js 无 ICU,退化为逐字节(码点)比较返回 -1/0/1。
                 // 此前未实现 → 通用派发崩。偏差:不做 locale 敏感排序/重音折叠(ASCII/普通文本对齐 node)。
                 if (args.length > 0) {
                     this.compileExpression(args[0]);

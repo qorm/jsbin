@@ -1,6 +1,6 @@
 # asm.js
 
-> Naming note: the product's official name is **asm.js** (homepage https://asm.js.cn), renamed from the former internal codename "jsbin" at the v0.1 public re-initialization (2026-07-19). A few internal identifiers (`jsbin_*` C API symbols, `JSBIN_*` env vars) still carry the old prefix and will be migrated separately.
+> Naming note: the product's official name is **asm.js** (homepage https://asm.js.cn), renamed from the former internal codename "jsbin" at the v0.1 public re-initialization (2026-07-19). Internal identifiers (C API symbols, env vars) uniformly use the `asmjs_*`/`ASMJS_*` prefixes.
 
 [中文版 README](./README.zh-CN.md)
 

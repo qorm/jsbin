@@ -1,7 +1,7 @@
 import { spawn } from "child_process";
 import fs from "fs";
 const man = JSON.parse(fs.readFileSync("es_tests/manifest.json"));
-const JSBIN = "/Users/dmy/work/jsbin/cli.js";
+const ASMJS = "/Users/dmy/work/jsbin/cli.js";
 const CONC = 6;
 const res = {};
 let done = 0;
@@ -9,7 +9,7 @@ function runOne(t){
   return new Promise((resolve)=>{
     const bin = `es_bin/${t.id}`;
     // 编译(30s 超时)
-    const c = spawn("node", [JSBIN, `es_tests/${t.id}.js`, "-o", bin], {stdio:["ignore","ignore","pipe"]});
+    const c = spawn("node", [ASMJS, `es_tests/${t.id}.js`, "-o", bin], {stdio:["ignore","ignore","pipe"]});
     let cerr="";
     c.stderr.on("data",d=>cerr+=d);
     const ckill = setTimeout(()=>c.kill("SIGKILL"), 30000);
@@ -32,11 +32,11 @@ function runOne(t){
       r.on("error",()=>{ clearTimeout(rkill); res[t.id]="CRASH"; finish(); });
     });
     c.on("error",()=>{ clearTimeout(ckill); res[t.id]="COMPILE_FAIL"; finish(); });
-    function finish(){ done++; if(done%100===0){ console.log(`  ...${done}/${man.length}`); fs.writeFileSync("es_tests/jsbin_result.json", JSON.stringify(res)); } resolve(); }
+    function finish(){ done++; if(done%100===0){ console.log(`  ...${done}/${man.length}`); fs.writeFileSync("es_tests/asmjs_result.json", JSON.stringify(res)); } resolve(); }
   });
 }
 let i=0;
 async function worker(){ while(i<man.length){ const t=man[i++]; await runOne(t); } }
 await Promise.all(Array.from({length:CONC}, worker));
-fs.writeFileSync("es_tests/jsbin_result.json", JSON.stringify(res));
-console.log("jsbin 差分完成:", Object.keys(res).length);
+fs.writeFileSync("es_tests/asmjs_result.json", JSON.stringify(res));
+console.log("asm.js 差分完成:", Object.keys(res).length);

@@ -1,4 +1,4 @@
-// JSBin 编译器 - 闭包编译
+// asm.js 编译器 - 闭包编译
 // 编译函数表达式、闭包、函数体
 
 import { VReg } from "../../vm/index.js";

@@ -1,4 +1,4 @@
-// JSBin 运行时 - TypedArray 和 ArrayBuffer 类型
+// asm.js 运行时 - TypedArray 和 ArrayBuffer 类型
 // 支持所有 JavaScript TypedArray 类型和 ArrayBuffer
 //
 // TypedArray 与普通 Array 的区别：

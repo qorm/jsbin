@@ -1,4 +1,4 @@
-// JSBin 虚拟指令集定义
+// asm.js 虚拟指令集定义
 
 export const OpCode = {
     // === 数据移动 ===

@@ -1,4 +1,4 @@
-// JSBin 运行时 - Windows 文件系统面(自举需要)
+// asm.js 运行时 - Windows 文件系统面(自举需要)
 // _win_open/_win_read/_win_write/_win_close:windows 目标发射真实 kernel32 IAT
 // 调用(CreateFileA/ReadFile/WriteFile/CloseHandle,槽 5-8);其它平台发射
 // 恒返 -1 的桩——fs shim 里 `platform === "windows"` 分支是运行时判断,

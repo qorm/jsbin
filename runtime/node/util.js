@@ -1,5 +1,5 @@
-// JSBin Runtime - Node.js util
-// Provides utility functions for JSBin compiled binaries
+// asm.js Runtime - Node.js util
+// Provides utility functions for asm.js compiled binaries
 
 // Node 风格单行 inspect(简化):字符串加引号,数组 [ ... ],普通对象 { k: v }。
 function _inspect(v, depth, maxDepth) {
@@ -14,7 +14,7 @@ function _inspect(v, depth, maxDepth) {
         const nm = v.name;
         return (nm && nm.length > 0) ? "[Function: " + nm + "]" : "[Function (anonymous)]";
     }
-    // instanceof 须先于 number 分支:jsbin 里 Map/Set/Date 实例 typeof 返回 "number"
+    // instanceof 须先于 number 分支:asm.js 里 Map/Set/Date 实例 typeof 返回 "number"
     // (类型标记缺陷),否则会被当数字 String() 出垃圾值。真数字/字符串 instanceof 安全返 false。
     if (v instanceof Date) return v.toISOString();
     if (v instanceof Map) {
@@ -210,7 +210,7 @@ export const util = {
 
 export const sys = util; // deprecated alias
 
-// Top-level named exports mirroring Node's `require("util")` shape. jsbin's
+// Top-level named exports mirroring Node's `require("util")` shape. asm.js's
 // require() currently returns the module namespace (see backlog: _requireKind
 // dynamic-field divergence in the self-compiled compiler), so the public API
 // must live at top level — not nested inside the `util` object — for
@@ -232,7 +232,7 @@ export const getSystemErrorName = util.getSystemErrorName;
 export const types = util.types;
 
 // Web-platform base64 globals (btoa/atob). Node exposes these as globals with no
-// import; jsbin wires the bare identifiers via implicit-global injection
+// import; asm.js wires the bare identifiers via implicit-global injection
 // (compiler/index.js _injectImplicitGlobalImports) to these exports. Housed here
 // because util.js is not imported by the compiler → self-host-safe (unlike
 // buffer.js which is on the layout-cliff import set). Latin1/binary-string

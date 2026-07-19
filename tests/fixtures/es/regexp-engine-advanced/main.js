@@ -45,7 +45,7 @@ var s2 = sy.exec("12 34");
 console.log("sy2", s2 === null, sy.lastIndex);
 console.log("sy3", /b/y.test("ab"), /a/y.test("ab"));
 
-// --- matchAll(for-of,node 返回迭代器/jsbin 返回数组,均可 for-of) ---
+// --- matchAll(for-of,node 返回迭代器/asm.js 返回数组,均可 for-of) ---
 var acc = "";
 for (var mm of "a1 b2 c3".matchAll(/(\w)(\d)/g)) {
     acc = acc + mm[0] + ":" + mm[1] + mm[2] + " ";

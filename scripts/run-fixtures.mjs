@@ -46,7 +46,7 @@ function parseArgs(argv) {
 }
 
 function printHelp() {
-    console.log(`JSBin fixture runner
+    console.log(`asm.js fixture runner
 
 Usage:
   node --no-warnings scripts/run-fixtures.mjs [options]
@@ -409,7 +409,7 @@ async function main() {
     const options = parseArgs(process.argv.slice(2));
     const Compiler = await loadCompiler(options.verbose);
     const target = detectHostTarget();
-    const runRoot = path.join(os.tmpdir(), `jsbin-fixtures-${process.pid}`);
+    const runRoot = path.join(os.tmpdir(), `asmjs-fixtures-${process.pid}`);
 
     rmSync(runRoot, { recursive: true, force: true });
     mkdirSync(runRoot, { recursive: true });

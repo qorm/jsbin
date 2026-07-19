@@ -1,4 +1,4 @@
-// JSBin 编译器 - 成员访问编译
+// asm.js 编译器 - 成员访问编译
 // 编译对象属性、数组索引访问
 
 import { VReg } from "../../vm/index.js";
@@ -951,7 +951,7 @@ export const MemberCompiler = {
             // 用户函数/类的 .name / .length 反射(编译期已知,静态解析访问点)。仅当接收者标识符
             // 静态解析到函数声明/类/const 绑定的箭头·函数表达式·类表达式时触发;数组/对象/字符串
             // 等其它接收者的 .length/.name 走下方通用路径 → 普通函数值 codegen 逐字节不变。
-            // jsbin 函数是闭包/裸函数指针、无属性容器,故 fn.name/fn.length 用访问点静态解析,
+            // asm.js 函数是闭包/裸函数指针、无属性容器,故 fn.name/fn.length 用访问点静态解析,
             // 不改闭包表示;运行时传递的函数值(参数/成员链)不静态可知则回落(undefined/通用)。
             if ((propName === "name" || propName === "length") && expr.object &&
                 (expr.object.type === "Identifier" || expr.object.type === "MemberExpression")) {
@@ -980,7 +980,7 @@ export const MemberCompiler = {
             }
 
             // 用户函数自定义属性读 fn.x(x 非 name/length/prototype):接收者静态解析到**函数**
-            // (非类——类有自己的静态成员机制)时,经闭包属性侧表(_closure_prop_get)读。jsbin
+            // (非类——类有自己的静态成员机制)时,经闭包属性侧表(_closure_prop_get)读。asm.js
             // 函数无属性容器,侧表按裸指针身份挂;无侧表/键 miss 返 undefined。仅函数接收者触发,
             // 其它类型(含类)走通用路径逐字节不变。
             if (propName !== "prototype" && expr.object &&
@@ -1053,8 +1053,8 @@ export const MemberCompiler = {
             } else {
                 // 特殊处理 import.meta.url
                 if (expr.object.type === "MetaProperty" && propName === "url") {
-                    // [layout-determinism] 只嵌入 basename(cwd 无关、node/jsbin 一致):sourcePath 在 node 是
-                    // path.resolve 的绝对路径(含 cwd)、jsbin 是相对路径 → 嵌入串分歧 → __data 布局分歧
+                    // [layout-determinism] 只嵌入 basename(cwd 无关、node/asm.js 一致):sourcePath 在 node 是
+                    // path.resolve 的绝对路径(含 cwd)、asm.js 是相对路径 → 嵌入串分歧 → __data 布局分歧
                     // (g1≠g2 + cwd 路径长度敏感的雷区根因)。自举二进制不依赖该嵌入值(cwd 分支优先)。
                     const _spb = String(this.sourcePath || ".").replace(/\\/g, "/");
                     const _base = _spb.slice(_spb.lastIndexOf("/") + 1) || ".";

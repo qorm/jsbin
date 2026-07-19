@@ -1,4 +1,4 @@
-// JSBin 运行时类型强制转换
+// asm.js 运行时类型强制转换
 // JavaScript 值转换函数
 // NaN-boxing 方案
 

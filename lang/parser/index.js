@@ -1,4 +1,4 @@
-// JSBin - JavaScript 语法解析器
+// asm.js - JavaScript 语法解析器
 // 将词法单元流转换为抽象语法树
 // 模块化重构版本
 

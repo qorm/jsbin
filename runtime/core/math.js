@@ -1,4 +1,4 @@
-// JSBin Math 运行时
+// asm.js Math 运行时
 // 实现 Math 对象的运行时函数
 
 import { VReg } from "../../vm/registers.js";

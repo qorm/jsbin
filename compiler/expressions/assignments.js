@@ -1,4 +1,4 @@
-// JSBin 编译器 - 赋值表达式编译
+// asm.js 编译器 - 赋值表达式编译
 // 编译各类赋值：简单赋值、复合赋值、成员赋值、更新表达式
 
 import { VReg } from "../../vm/index.js";
@@ -516,7 +516,7 @@ export const AssignmentCompiler = {
         }
 
         // 用户函数自定义属性写 fn.x = v(x 非 length):接收者静态解析到函数时,经闭包属性侧表
-        // (_closure_prop_set)按裸指针身份挂——jsbin 函数无属性容器。仅函数接收者触发,其它类型
+        // (_closure_prop_set)按裸指针身份挂——asm.js 函数无属性容器。仅函数接收者触发,其它类型
         // 走下方通用路径逐字节不变。fn.name/.length 由读侧静态反射;此处只接自定义属性写。
         const _cpsFnr = (!member.computed && member.property.type === "Identifier" &&
             member.property.name !== "prototype" && this._resolveFnNode)

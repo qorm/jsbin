@@ -1,4 +1,4 @@
-// JSBin 编译器 - 表达式编译（聚合模块）
+// asm.js 编译器 - 表达式编译（聚合模块）
 // 导入并组合所有表达式相关的编译器
 
 import { VReg } from "../../vm/index.js";
@@ -627,9 +627,9 @@ export const ExpressionCompiler = {
             case "URIError":
             case "EvalError":
             case "AggregateError": {
-                // [#36] Error 族:普通对象 {name, message, __jsbin_err:true}。
+                // [#36] Error 族:普通对象 {name, message, __asmjs_err:true}。
                 // 原为返回 undefined(throw new Error 后 catch 到 0、.message 崩)。
-                // instanceof 依赖 __jsbin_err 标记(Error)与 name 串比对(具体类)。
+                // instanceof 依赖 __asmjs_err 标记(Error)与 name 串比对(具体类)。
                 const errObj = this.ctx.allocLocal(`__err_${this.nextLabelId()}`);
                 // AggregateError(errors, message):message 是第 2 参,errors 是第 1 参;
                 // 其余 Error 族 message 是第 1 参。先求 errors(若有)存槽,再求 message。
@@ -667,7 +667,7 @@ export const ExpressionCompiler = {
                 this.vm.call("_object_set");
                 // instanceof 标记
                 this.vm.load(VReg.A0, VReg.FP, errObj);
-                this.emitBoxedStringKey("__jsbin_err", VReg.A1);
+                this.emitBoxedStringKey("__asmjs_err", VReg.A1);
                 this.vm.movImm64(VReg.A2, 0x7ff9000000000001n); // was lea+load _js const
                 this.vm.call("_object_set");
                 // AggregateError.errors = 第 1 参可迭代(node 语义;缺失则空数组)
@@ -1583,7 +1583,7 @@ export const ExpressionCompiler = {
         // 迭代器:values/entries/keys。typed 布局(元素@16)不能落 _array_values/entries
         // (读 data_ptr@24 → 空/垃圾,是直接 ta.values()/entries() 出错的根因)。先
         // _ta_to_array 转普通数组(逐元素 canonical 数字),再走普通数组迭代:values 即
-        // 数组本身、entries=[[i,v]]、keys=[0..len-1]。(jsbin 把迭代器建模为即时数组。)
+        // 数组本身、entries=[[i,v]]、keys=[0..len-1]。(asm.js 把迭代器建模为即时数组。)
         if (name === "values" || name === "entries" || name === "keys") {
             this.compileExpression(obj);
             vm.mov(VReg.A0, VReg.RET);

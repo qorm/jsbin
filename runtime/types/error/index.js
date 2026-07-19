@@ -1,4 +1,4 @@
-// JSBin 运行时 - Error 类型
+// asm.js 运行时 - Error 类型
 // 提供 JavaScript Error 对象支持
 
 import { VReg } from "../../../vm/index.js";

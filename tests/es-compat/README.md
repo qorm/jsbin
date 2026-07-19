@@ -7,7 +7,7 @@
 1. 下载 compat-table 数据(`data-es6.js` + `data-es2016plus.js`,依赖 `data-common`——用 Proxy 桩替代其转译器标注)。
 2. `gen.mjs`:每个测试的 `exec` 函数体在 compat-table 里放于 `/* ... */` 注释内(返回 boolean,true=特性可用)。抽出包成独立程序 `function __test(){…}` + `RESULT:` 标记。
 3. `node_ref.mjs`:node 跑全部,得基线(**只有 node-PASS 的测试才是"特性在 node 真实工作"的可比对项**)。
-4. `jsbin_run.mjs`:asm.js 逐个编译(30s 超时)+ 运行(10s 超时),分类 `PASS/FAIL/COMPILE_FAIL/CRASH/NOOUT`。6 路并发。
+4. `asmjs_run.mjs`:asm.js 逐个编译(30s 超时)+ 运行(10s 超时),分类 `PASS/FAIL/COMPILE_FAIL/CRASH/NOOUT`。6 路并发。
 5. `report.mjs`:合并三方结果,按特性组出支持率矩阵。
 
 ## 复现
@@ -20,7 +20,7 @@ done
 # data-common 桩(见 README 顶部)
 printf 'const h={get:()=>new Proxy(function(){},h)};module.exports=new Proxy(function(){},h);\n' > data-common.js
 cp <此目录>/*.mjs .
-node gen.mjs && node node_ref.mjs && node jsbin_run.mjs && node report.mjs
+node gen.mjs && node node_ref.mjs && node asmjs_run.mjs && node report.mjs
 ```
 
 ## 结果解读(重要)

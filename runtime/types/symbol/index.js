@@ -1,4 +1,4 @@
-// JSBin Symbol 运行时（ES 批次D 基础子集）
+// asm.js Symbol 运行时（ES 批次D 基础子集）
 //
 // 值表示：NaN-box 标签已满，Symbol 用**裸堆指针 + 用户区类型标记**表示
 // （与 TYPE_GETTER 标记对象同一手法，判别 = 裸堆指针(高16位=0) 且

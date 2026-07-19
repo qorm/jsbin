@@ -1,4 +1,4 @@
-// JSBin Runtime - Node.js crypto
+// asm.js Runtime - Node.js crypto
 
 import { Buffer } from "./buffer.js";
 import { getSyscall } from "./constants.js";
@@ -41,7 +41,7 @@ const _hexChars = "0123456789abcdef";
 
 // ============================================================================
 // 真实哈希实现(SHA-256 / SHA-1 / MD5)。纯 32 位整数运算(移位/异或/加法),
-// 无乘法,jsbin 编译产物可正确执行。输入按字节数组处理(字符串走 charCodeAt,
+// 无乘法,asm.js 编译产物可正确执行。输入按字节数组处理(字符串走 charCodeAt,
 // ASCII 与 Node utf8 一致;非 ASCII 记偏差)。sha224/384/512 尚无实现,退化为
 // 旧的确定性占位摘要(稳定但非真值)。
 // ============================================================================
@@ -206,7 +206,7 @@ function _md5(bytes) {
 }
 
 // ============================================================================
-// SHA-512 / SHA-384(64 位算法)。jsbin number 为 float64,无原生 64 位整数,
+// SHA-512 / SHA-384(64 位算法)。asm.js number 为 float64,无原生 64 位整数,
 // 故每个 64 位字用 [hi, lo] 两个 32 位无符号分量表示;所有运算(rotr/shr/
 // xor/and/not/带进位加)在 32 位分量上做,无宽整数乘。`>>> 0` 已验证可把
 // 至多 ~2^35 的浮点正确约减到 uint32(SHA-256 路径同款),进位用比较得出。
@@ -359,7 +359,7 @@ function _computeDigest(buf, algo, encoding) {
 
 // HMAC(RFC 2104):H((key ^ opad) || H((key ^ ipad) || msg))。
 // 全程走字节数组的 _hmacRaw:哈希的中间摘要(inner digest)可能含 NUL 字节,
-// 若用字符串拼接会被 jsbin 的内嵌 NUL 截断而算错,故 createHmac 与 PBKDF2
+// 若用字符串拼接会被 asm.js 的内嵌 NUL 截断而算错,故 createHmac 与 PBKDF2
 // 共用同一字节实现(块长:sha512/384=128,其余=64)。key 支持 string/Buffer。
 function _hmacDigest(key, msg, algo, encoding) {
     const keyBytes = _toBytes(key);
@@ -779,7 +779,7 @@ function _makeCipheriv(algo, key, iv, decrypt) {
     const info = _aesInfo(algo);
     if (!info) throw new Error("Unsupported cipher: " + algo);
     // 所有不变量放在 state 上,方法闭包只捕获 state(与 _makeHash 同型,规避
-    // jsbin 里方法闭包捕获多个外层 const 的不可靠共享)。
+    // asm.js 里方法闭包捕获多个外层 const 的不可靠共享)。
     if (info.mode === "gcm") return _makeGcm(info, key, iv, decrypt);
     const state = {
         chunks: [], autoPad: true, decrypt: decrypt, Nr: info.Nr, mode: info.mode,
@@ -810,7 +810,7 @@ function _makeCipheriv(algo, key, iv, decrypt) {
     return api;
 }
 
-// 直接对字节数组做哈希(绕过字符串:jsbin 字符串遇内嵌 NUL 会截断,PBKDF2 的
+// 直接对字节数组做哈希(绕过字符串:asm.js 字符串遇内嵌 NUL 会截断,PBKDF2 的
 // INT32BE 计数器含 NUL,故 HMAC/PBKDF2 全程走字节数组)。
 function _hashRaw(algo, bytes) {
     const a = (algo || "").toLowerCase();
@@ -913,7 +913,7 @@ function _hkdf(digest, ikm, salt, info, keylen) {
     return Buffer.from(okm);
 }
 
-// 用闭包对象(非 class):jsbin 里从对象方法内 `new ClassName()` 实例化会崩,
+// 用闭包对象(非 class):asm.js 里从对象方法内 `new ClassName()` 实例化会崩,
 // 闭包 api 对象规避该限制,且 update 链式返回自身。
 function _makeHash(algorithm) {
     const state = { algo: algorithm, buf: "" };

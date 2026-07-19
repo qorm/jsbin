@@ -1,6 +1,6 @@
 // [#52] 生成器体内本地变量跨 yield 被改写:纯标量赋值、多本地交替、闭包捕获、
 // while(true) 有状态循环。生成器体跑在协程栈上,yield 切栈后 resume 须能正确
-// 读写协程帧上的本地(FP 相对)。本文件在 node 下的输出须与 jsbin 逐字节一致。
+// 读写协程帧上的本地(FP 相对)。本文件在 node 下的输出须与 asm.js 逐字节一致。
 
 // 最简:yield 前后各改一次标量本地
 function* g1() { var x = 0; x = x + 1; yield x; x = x + 1; yield x; }

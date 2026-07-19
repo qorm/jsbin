@@ -1,4 +1,4 @@
-// JSBin 解析器 - 运算符优先级定义
+// asm.js 解析器 - 运算符优先级定义
 
 import { TokenType } from "../lexer/token.js";
 

@@ -1,4 +1,4 @@
-// JSBin 字符串运行时 - 类型转换
+// asm.js 字符串运行时 - 类型转换
 // 提供字符串与其他类型的转换函数
 
 import { VReg } from "../../../vm/registers.js";

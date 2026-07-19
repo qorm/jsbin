@@ -1,4 +1,4 @@
-// JSBin - 块级作用域改名(let/const shadowing + TDZ 标记)
+// asm.js - 块级作用域改名(let/const shadowing + TDZ 标记)
 //
 // 设计:AST 级 alpha-renaming 前置 pass(在 parse 之后、闭包分析/编译之前跑一次)。
 // 把「非函数顶层块」里的 let/const 绑定改成全函数唯一的内部名 `name$blk$N`,
@@ -41,7 +41,7 @@ function bsPopFrame(st) {
 }
 
 // [#32] 双语义守卫:合法记录恒为带 bs===1 标记的对象。node 下字典 miss 会
-// 沿原型链拿到函数(constructor/toString),jsbin 下返回 raw 0 —— 都判 miss。
+// 沿原型链拿到函数(constructor/toString),asm.js 下返回 raw 0 —— 都判 miss。
 function bsFrameGet(frame, name) {
     const rec = frame.m[name];
     if (rec && typeof rec === "object" && rec.bs === 1) return rec;

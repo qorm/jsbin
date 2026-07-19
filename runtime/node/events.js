@@ -1,5 +1,5 @@
-// JSBin Runtime - Node.js events
-// Provides EventEmitter for JSBin compiled binaries
+// asm.js Runtime - Node.js events
+// Provides EventEmitter for asm.js compiled binaries
 
 export class EventEmitter {
     constructor() {

@@ -1,4 +1,4 @@
-// JSBin 编译器 - 语句编译
+// asm.js 编译器 - 语句编译
 // 编译各类 JavaScript 语句
 
 import { VReg } from "../../vm/index.js";
@@ -116,7 +116,7 @@ export const StatementCompiler = {
 
     emitThrowTypeError(message = "not a function") {
         // 抛真正的 TypeError 对象(复用 `new TypeError(msg)` 的构造路径:普通对象
-        // {name:"TypeError", message, __jsbin_err}),这样 `catch(e)` 里 `e instanceof
+        // {name:"TypeError", message, __asmjs_err}),这样 `catch(e)` 里 `e instanceof
         // TypeError`、`e.name`、`e.message` 才成立(此前抛裸字符串 → instanceof 恒 false,
         // 令一批 "throws TypeError / requires new" 差分测试判负)。
         this.compileExpression({
@@ -3063,7 +3063,7 @@ export const StatementCompiler = {
 
         // 保存 this (A0)
         // 注意：JS 方法调用约定中，this 通过 A5 传递（而不是 A0）
-        // 这是 JSBin 的特殊约定，用于区分方法调用和普通函数调用
+        // 这是 asm.js 的特殊约定，用于区分方法调用和普通函数调用
         const thisOffset = this.ctx.allocLocal("__this");
         this.vm.mov(VReg.V0, VReg.A5); // 从 A5 获取 this
         this.vm.store(VReg.FP, thisOffset, VReg.V0);

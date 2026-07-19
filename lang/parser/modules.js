@@ -1,4 +1,4 @@
-// JSBin 解析器 - 模块解析
+// asm.js 解析器 - 模块解析
 // 解析 import/export 声明
 
 import { TokenType } from "../lexer/token.js";

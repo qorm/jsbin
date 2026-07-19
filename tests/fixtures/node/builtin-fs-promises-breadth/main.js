@@ -1,7 +1,7 @@
 import fsp from "node:fs/promises";
 
 async function main() {
-  const dir = "/tmp/jsbin_fx_fsp_breadth";
+  const dir = "/tmp/asmjs_fx_fsp_breadth";
   try { await fsp.unlink(dir + "/a.txt"); } catch {}
   try { await fsp.rmdir(dir); } catch {}
 

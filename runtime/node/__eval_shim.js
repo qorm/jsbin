@@ -3,7 +3,7 @@
 // readModuleSource 前置注入 `import { __eval, __makeFunction } from "__eval_shim"`,
 // 调用点由 compileCallExpression / compileNewExpression 改派到这里(路线同 __json_shim)。
 //
-// 注意:import compileFragment 会把**整个 jsbin 编译器**编入产物(route B 设计:只有用
+// 注意:import compileFragment 会把**整个 asm.js 编译器**编入产物(route B 设计:只有用
 // eval/new Function 的程序才付这个代价)。语义:间接 eval / 全局作用域——不捕获调用处
 // 词法作用域(独立里程碑)。
 
@@ -39,7 +39,7 @@ export function __eval_direct(x, fp, layout) {
 
 // __makeFunction(names, body):new Function(...argNames, body) 的落点。names 是形参名字符串
 // 数组,body 是函数体源。把两者**包装成函数表达式源码** `(function(<params>){<body>})`,编成
-// 片段并求值——片段结果即一个**真 jsbin 闭包**(默认参数/rest/超 6 形参的栈溢出全由正常
+// 片段并求值——片段结果即一个**真 asm.js 闭包**(默认参数/rest/超 6 形参的栈溢出全由正常
 // compileFunctionBody 处理),直接返回。用户调用它走标准闭包调用约定(callIndirect 到片段页
 // 内的函数体),无需手工载参。片段 mmap 页执行后不释放,故闭包函数指针恒有效。
 export function __makeFunction(names, body) {

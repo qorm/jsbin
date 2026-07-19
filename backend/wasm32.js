@@ -1,4 +1,4 @@
-// JSBin WebAssembly (wasm32) 后端
+// asm.js WebAssembly (wasm32) 后端
 // 把 VM 抽象指令翻译为"分段虚拟 CPU"的 wasm 字节码(设计见 docs/WASM_DESIGN.md):
 //   • 虚拟寄存器 → 模块级 mutable globals(RET 与 A0 共用,保持 arm64 别名语义)——
 //     M3 分段后寄存器状态须跨 wasm 函数(段)存活,globals 即"寄存器堆";GC 根扫描

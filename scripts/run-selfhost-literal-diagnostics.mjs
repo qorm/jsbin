@@ -81,11 +81,11 @@ function toHex(text) {
     return bytes.toString("hex");
 }
 
-const workDir = mkdtempSync(path.join(os.tmpdir(), "jsbin-selfhost-literal-diag-"));
+const workDir = mkdtempSync(path.join(os.tmpdir(), "asmjs-selfhost-literal-diag-"));
 let success = false;
 
 try {
-    const gen1Path = path.join(workDir, "jsbin-gen1");
+    const gen1Path = path.join(workDir, "asmjs-gen1");
     const build = run(process.execPath, [hostCli, hostCli, "-o", gen1Path]);
     if (build.status !== 0 || !existsSync(gen1Path)) {
         console.error("FAIL build-gen1");

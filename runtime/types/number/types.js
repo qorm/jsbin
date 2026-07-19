@@ -1,4 +1,4 @@
-// JSBin 运行时 - Number 子类型常量定义
+// asm.js 运行时 - Number 子类型常量定义
 //
 // Number 对象布局: [type:8 | value:8]
 // - type: 类型标识符 (区分不同数值类型)

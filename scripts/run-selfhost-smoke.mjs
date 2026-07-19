@@ -14,12 +14,12 @@ const matrixMode = argv.includes("--matrix") || argv.includes("--strict");
 const strictMode = argv.includes("--strict");
 const chainMode = argv.includes("--chain");
 const chainDepth = 3;
-const configuredStepTimeoutMs = Number(process.env.JSBIN_SELFHOST_STEP_TIMEOUT_MS || 0);
+const configuredStepTimeoutMs = Number(process.env.ASMJS_SELFHOST_STEP_TIMEOUT_MS || 0);
 const stepTimeoutMs =
     Number.isFinite(configuredStepTimeoutMs) && configuredStepTimeoutMs > 0
         ? Math.floor(configuredStepTimeoutMs)
         : 0;
-const traceHarness = process.env.JSBIN_SELFHOST_TRACE === "1";
+const traceHarness = process.env.ASMJS_SELFHOST_TRACE === "1";
 
 const selfhostCases = [
     {
@@ -230,8 +230,8 @@ function runStep(command, args, options = {}) {
         ? { timeout: stepTimeoutMs, killSignal: "SIGKILL" }
         : {};
     let childEnv = providedEnv || process.env;
-    if (traceHarness && childEnv.JSBIN_TRACE_COMPILE !== "1") {
-        childEnv = { ...childEnv, JSBIN_TRACE_COMPILE: "1" };
+    if (traceHarness && childEnv.ASMJS_TRACE_COMPILE !== "1") {
+        childEnv = { ...childEnv, ASMJS_TRACE_COMPILE: "1" };
     }
     if (traceHarness) {
         console.log(`TRACE selfhost-runner: spawn ${command} ${args.join(" ")}`);
@@ -329,7 +329,7 @@ function toSafeSegment(value) {
         .replace(/^-+|-+$/g, "") || "chain";
 }
 
-const workDir = mkdtempSync(path.join(os.tmpdir(), "jsbin-selfhost-"));
+const workDir = mkdtempSync(path.join(os.tmpdir(), "asmjs-selfhost-"));
 let success = false;
 
 class SelfhostFailure extends Error {
@@ -347,7 +347,7 @@ function buildCompilerChain(sourceEntry, sourceLabel, generationDepth, logBuildS
     const slug = toSafeSegment(sourceLabel);
     const hostCli = path.join(repoRoot, "cli.js");
     const compilers = [];
-    const gen1Compiler = path.join(workDir, `jsbin-gen1-${slug}`);
+    const gen1Compiler = path.join(workDir, `asmjs-gen1-${slug}`);
 
     const hostCompile = runStep(process.execPath, [hostCli, sourceEntry, "-o", gen1Compiler]);
     if (hostCompile.status !== 0 || !existsSync(gen1Compiler)) {
@@ -374,7 +374,7 @@ function buildCompilerChain(sourceEntry, sourceLabel, generationDepth, logBuildS
 
     let previousCompiler = gen1Compiler;
     for (let generation = 2; generation <= generationDepth; generation++) {
-        const outputCompiler = path.join(workDir, `jsbin-gen${generation}-${slug}`);
+        const outputCompiler = path.join(workDir, `asmjs-gen${generation}-${slug}`);
         const compileResult = runStep(previousCompiler, [sourceEntry, "-o", outputCompiler]);
         if (compileResult.status !== 0 || !existsSync(outputCompiler)) {
             return {

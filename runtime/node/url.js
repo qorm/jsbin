@@ -1,4 +1,4 @@
-// JSBin Runtime - Node.js url
+// asm.js Runtime - Node.js url
 
 export function fileURLToPath(url) {
     if (url && typeof url === "object" && typeof url.href === "string") url = url.href;
@@ -78,7 +78,7 @@ export class URLSearchParams {
             }
         } else if (init && typeof init === "object") {
             // init 为键值对数组 [[k,v],...] 或普通对象 {k:v}。用 Array.isArray 判别
-            // (jsbin 里普通对象的 .length 返 0,不能用 length 判数组)。
+            // (asm.js 里普通对象的 .length 返 0,不能用 length 判数组)。
             if (Array.isArray(init)) {
                 for (let i = 0; i < init.length; i++) {
                     const p = init[i];

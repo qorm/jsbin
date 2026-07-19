@@ -1,4 +1,4 @@
-// JSBin 后端基类
+// asm.js 后端基类
 // 所有目标平台后端的抽象接口
 
 import { VReg } from "../vm/registers.js";

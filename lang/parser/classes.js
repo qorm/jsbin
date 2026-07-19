@@ -1,4 +1,4 @@
-// JSBin 解析器 - 类解析
+// asm.js 解析器 - 类解析
 // 解析 class 声明、方法、私有字段等
 
 import { TokenType } from "../lexer/token.js";

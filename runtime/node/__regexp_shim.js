@@ -1,4 +1,4 @@
-// JSBin RegExp shim - 纯 JS 回溯式正则引擎子集(参照 __json_shim 的注入路线)。
+// asm.js RegExp shim - 纯 JS 回溯式正则引擎子集(参照 __json_shim 的注入路线)。
 // compiler/index.js readModuleSource 在源码含正则字面量或 "new RegExp" 时自动
 // 前置 import;调用点由 compiler/functions/functions.js 改派:
 //   re.test(s)         -> __RE_test(re, s)
@@ -19,7 +19,7 @@
 //
 // gen1-safe 铁律:本文件会被 gen1 编译器编译——不用正则、不用解构、不用默认参数、
 // 不用 getter/生成器、不用 arr.length=n 截断;仅 charCodeAt/charAt/slice/indexOf/push。
-// exec 结果是"类数组普通对象"{0:..,1:..,index,input,length}(jsbin 数组不支持挂
+// exec 结果是"类数组普通对象"{0:..,1:..,index,input,length}(asm.js 数组不支持挂
 // 自定义属性,详见提交说明)。
 
 // ---------- 字符判定 ----------
@@ -553,7 +553,7 @@ function __re_resolveName(mst, name) {
     return ri;
 }
 
-// !! 全部匹配函数保持 ≤4 参数:jsbin x64 后端的 P1 热槽晋升对"循环体内 ≥5 实参
+// !! 全部匹配函数保持 ≤4 参数:asm.js x64 后端的 P1 热槽晋升对"循环体内 ≥5 实参
 // 调用且调用后还有代码"的形态会错编(晋升重放的 push/pop→mov 改写在 x64 上与
 // A2/A3/A4=V2/V1/V3 寄存器别名冲突;arm64 无别名不受影响;P1_OFF=1 可复现/规避)。
 // 故把 (ni,pos)/(count,pos) 打包进一个整数参数:pk = hi * 2^26 + pos。
@@ -828,7 +828,7 @@ export function __RE_exec(re, str) {
         if (end >= 0) {
             if (anchored) re.lastIndex = end;
             var m = { index: p, input: s, length: prog.ncap + 1 };
-            // 注意:必须用字面量下标逐个赋值——jsbin 的对象计算键赋值 m[g](g 为
+            // 注意:必须用字面量下标逐个赋值——asm.js 的对象计算键赋值 m[g](g 为
             // 数值变量)有键归一化 bug(全部塌到同一槽),字面量键则正常。
             // 因此捕获组支持上限 9($1..$9,与 replace 的组引用范围一致)。
             m[0] = s.slice(p, end);
@@ -858,12 +858,12 @@ export function __RE_exec(re, str) {
     return null;
 }
 
-// [start,end] 子区间(真数组,jsbin 支持嵌套数组元素)。
+// [start,end] 子区间(真数组,asm.js 支持嵌套数组元素)。
 function __re_pair(a, b) { var r = []; r.push(a); r.push(b); return r; }
 // 组 gi 的 indices 项:命中→[start,end],未命中→undefined。
 function __re_indPair(mst, gi) { return mst.capS[gi] >= 0 ? __re_pair(mst.capS[gi], mst.capE[gi]) : undefined; }
 
-// 构造 exec 结果的 .indices(d 标志)。**普通对象**(非数组:jsbin 数组无命名属性容器,
+// 构造 exec 结果的 .indices(d 标志)。**普通对象**(非数组:asm.js 数组无命名属性容器,
 // `arr.groups=` 会崩),字面量键 0..9 + length + groups(同 m 匹配对象的伪数组模式)。
 // [i]=组 i 的 [start,end] 或 undefined;.groups 为命名组名→[start,end]。
 function __re_buildIndices(mst, p, end, prog) {
@@ -918,7 +918,7 @@ function __re_capVal(mst, s, g) {
     return undefined;
 }
 
-// 用字面量下标读取组值(同上:jsbin 对象计算键 m[gi](gi 为数值变量)有 bug,
+// 用字面量下标读取组值(同上:asm.js 对象计算键 m[gi](gi 为数值变量)有 bug,
 // 读也会塌到 0 号槽,必须走字面量键)
 function __re_grp(m, gi) {
     switch (gi) {
@@ -966,7 +966,7 @@ export function __RE_test(re, str) {
     return __RE_exec(re, str) !== null;
 }
 
-// RegExp.prototype.toString → "/source/flags"。显式传 re(不依赖 this 绑定,jsbin
+// RegExp.prototype.toString → "/source/flags"。显式传 re(不依赖 this 绑定,asm.js
 // 对象方法 this 布局敏感)。供 re.toString()/String(re) 的编译期分派调用。
 export function __RE_toString(re) {
     if (re === null || re === undefined || typeof re.source !== "string") return "" + re;
@@ -1078,7 +1078,7 @@ function __re_callRepl(fn, m, s) {
     args.push(s);
     // 命名组存在时,replacer 末参为 groups 对象(node 语义);无命名组则不传。
     if (m.groups !== undefined) args.push(m.groups);
-    // jsbin 直接调用支持 6 位置实参,而 fn.apply 仅透 5(调用 ABI);groups 是**末参**,故
+    // asm.js 直接调用支持 6 位置实参,而 fn.apply 仅透 5(调用 ABI);groups 是**末参**,故
     // ≤6 实参(捕获组 ≤2 的命名组场景)走直接调用让 groups 到位。>6(捕获组 ≥3)才回退
     // apply,此时 groups 溢出丢弃(6 参 ABI 限,记偏差)。
     var r;

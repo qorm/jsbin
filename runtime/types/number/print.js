@@ -1,4 +1,4 @@
-// JSBin 运行时 - Number 打印功能
+// asm.js 运行时 - Number 打印功能
 // 统一的数值打印函数，支持所有 Number 子类型
 
 import { VReg } from "../../../vm/registers.js";

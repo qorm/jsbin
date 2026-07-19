@@ -16,7 +16,7 @@ const fixturePath = path.isAbsolute(fixtureArg) ? fixtureArg : path.join(repoRoo
 const BRANCH_RE = /\b(?:b|bl|b\.[a-z]+|cbz|cbnz)\s+0x([0-9a-f]+)/i;
 const ADRP_RE = /\badrp\s+x([0-9]+),/i;
 const ADRP_ADD_RE = /\badd\s+x([0-9]+),\s*x([0-9]+),\s+#0x([0-9a-f]+)/i;
-const CHAIN_TIMEOUT_MS = Number(process.env.JSBIN_FIXUP_CHAIN_TIMEOUT_MS || 120000);
+const CHAIN_TIMEOUT_MS = Number(process.env.ASMJS_FIXUP_CHAIN_TIMEOUT_MS || 120000);
 
 function runStep(command, args, options = {}) {
     return spawnSync(command, args, {
@@ -219,12 +219,12 @@ function isAdrpAddCollapsed(hostStats, gen1Stats) {
     return false;
 }
 
-const workDir = mkdtempSync(path.join(os.tmpdir(), "jsbin-fixup-diversity-"));
+const workDir = mkdtempSync(path.join(os.tmpdir(), "asmjs-fixup-diversity-"));
 let success = false;
 
 try {
     const hostCli = path.join(repoRoot, "cli.js");
-    const gen1Compiler = path.join(workDir, "jsbin-gen1");
+    const gen1Compiler = path.join(workDir, "asmjs-gen1");
     const hostBin = path.join(workDir, "host-fixture-bin");
     const gen1Bin = path.join(workDir, "gen1-fixture-bin");
 

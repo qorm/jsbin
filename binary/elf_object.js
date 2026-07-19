@@ -134,10 +134,10 @@ export class ELFObjectGenerator {
 
         // 构建字符串表
         // Section names: \0, .text, .data, .symtab, .strtab, .shstrtab, .rela.text
-        // [layout-determinism] 直接构建字节数组,不用含内嵌 \0 的字符串字面量:jsbin 的字符串
+        // [layout-determinism] 直接构建字节数组,不用含内嵌 \0 的字符串字面量:asm.js 的字符串
         // 是 NUL 结尾(C-string)语义,`"\0.text\0…"` 被首个 \0 截成空串 → 该数据常量在 node
-        // (完整)与 jsbin(空)两侧字节不同 → __data 布局分歧 → 自举 g1≠g2 残差(自举雷区
-        // 的最后根因)。逐段 push 字符码 + 显式 0 分隔,node/jsbin 产同字节(且 jsbin 的 ELF
+        // (完整)与 asm.js(空)两侧字节不同 → __data 布局分歧 → 自举 g1≠g2 残差(自举雷区
+        // 的最后根因)。逐段 push 字符码 + 显式 0 分隔,node/asm.js 产同字节(且 asm.js 的 ELF
         // shstrtab 此前实为空/损坏,一并修好)。
         const shstrtabBytes = [];
         shstrtabBytes.push(0); // 索引 0: 前导 \0
@@ -332,7 +332,7 @@ export class ELFObjectGenerator {
 
     buildSymbolTable(labels) {
         const symtab = [];
-        // [layout-determinism] 字节数组构建,不用含内嵌 \0 的字符串字面量:jsbin 的字符串是
+        // [layout-determinism] 字节数组构建,不用含内嵌 \0 的字符串字面量:asm.js 的字符串是
         // NUL 结尾(C-string)语义,"\0" 常量被截成空串 → 两侧字节分歧 → 自举 g1≠g2 残差。
         const strtab = [0]; // ELF 字符串表首字节为 NUL(空串);后续每个符号名 + 0 分隔
         let strtabOffset = 1;

@@ -1,12 +1,12 @@
 import fs from "node:fs";
 
-const dir = "/tmp/jsbin_fx_mkdir_rt";
+const dir = "/tmp/asmjs_fx_mkdir_rt";
 const file = dir + "/data.txt";
 
 try { fs.unlinkSync(file); } catch {}
 try { fs.rmdirSync(dir); } catch {}
 
-console.log(fs.existsSync("/tmp/jsbin_fx_definitely_absent_zzz"));
+console.log(fs.existsSync("/tmp/asmjs_fx_definitely_absent_zzz"));
 fs.mkdirSync(dir);
 console.log(fs.existsSync(dir));
 fs.writeFileSync(file, "hello fs");

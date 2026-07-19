@@ -1,4 +1,4 @@
-// JSBin 编译器 - 数据结构编译
+// asm.js 编译器 - 数据结构编译
 // 编译数组表达式、对象表达式
 
 import { VReg } from "../../vm/index.js";

@@ -1,12 +1,12 @@
-// JSBin Runtime - Node.js zlib
+// asm.js Runtime - Node.js zlib
 // Real DEFLATE/INFLATE (RFC 1951), zlib wrapper (RFC 1950), gzip (RFC 1952).
-// Pure 32-bit integer computation (no syscalls) — compiles/runs under jsbin.
+// Pure 32-bit integer computation (no syscalls) — compiles/runs under asm.js.
 //
 // Implemented sync APIs with genuine (de)compression + Node interop:
 //   inflateSync / inflateRawSync / gunzipSync   (decoder: stored + fixed + dynamic Huffman)
 //   deflateSync / deflateRawSync / gzipSync     (encoder: LZ77 + fixed Huffman)
 //   crc32 / adler32 checksums
-// A jsbin-produced gzip/zlib/raw buffer decompresses in Node and vice-versa.
+// A asmjs-produced gzip/zlib/raw buffer decompresses in Node and vice-versa.
 
 // NOTE: import Buffer under an alias. Bare `new Buffer(...)` is intercepted by a
 // compiler builtin that returns an object without the `.data` byte array, so we

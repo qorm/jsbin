@@ -1,4 +1,4 @@
-// JSBin 运行时 - 异步支持模块
+// asm.js 运行时 - 异步支持模块
 // 导出协程和 Promise 运行时
 
 export { CoroutineGenerator } from "./coroutine.js";

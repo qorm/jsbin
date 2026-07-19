@@ -1,4 +1,4 @@
-// JSBin 打印运行时 - 基础模块
+// asm.js 打印运行时 - 基础模块
 // 提供基础输出函数：字符串、换行、空格、布尔值
 
 import { VReg } from "../../vm/registers.js";

@@ -1,4 +1,4 @@
-// JSBin 字符串运行时
+// asm.js 字符串运行时
 // 提供字符串操作函数
 
 import { VReg } from "../../../vm/registers.js";
@@ -37,7 +37,7 @@ export class StringGenerator {
         vm.load(VReg.V1, VReg.V0, 0); // V1 = old flags_and_size
         vm.movImm64(VReg.V2, 0xffffffffffffff00n);
         vm.and(VReg.V1, VReg.V1, VReg.V2); // 清除低 8 位
-        vm.movImm(VReg.V2, TYPE_STRING); // JSBin 中类型保存在最低 byte
+        vm.movImm(VReg.V2, TYPE_STRING); // asm.js 中类型保存在最低 byte
         vm.or(VReg.V1, VReg.V1, VReg.V2);
         vm.store(VReg.V0, 0, VReg.V1); // 写回
         
@@ -891,7 +891,7 @@ export class StringGenerator {
         vm.label("_valueToStr_js_object");
         // [#36] Error 族对象(装箱 0x7FFD)→ "name: message"。S0 仍是装箱值。
         vm.mov(VReg.A0, VReg.S0);
-        vm.call("_is_jsbin_err");
+        vm.call("_is_asmjs_err");
         vm.cmpImm(VReg.RET, 0);
         vm.jeq("_valueToStr_js_object_plain");
         vm.mov(VReg.A0, VReg.S0);
@@ -1166,12 +1166,12 @@ export class StringGenerator {
 
         vm.label("_valueToStr_as_object");
         // [#36] Error 族对象 → "name: message"。此处 S0 是裸对象堆指针(high16==0),
-        // 先装箱回 0x7FFD 供 _is_jsbin_err/_error_to_str(它们按装箱值取属性)。
+        // 先装箱回 0x7FFD 供 _is_asmjs_err/_error_to_str(它们按装箱值取属性)。
         vm.mov(VReg.S1, VReg.S0);
         vm.movImm64(VReg.V1, 0x7ffd000000000000n);
         vm.or(VReg.S1, VReg.S1, VReg.V1); // S1 = 装箱对象
         vm.mov(VReg.A0, VReg.S1);
-        vm.call("_is_jsbin_err");
+        vm.call("_is_asmjs_err");
         vm.cmpImm(VReg.RET, 0);
         vm.jeq("_valueToStr_as_object_plain");
         vm.mov(VReg.A0, VReg.S1);
@@ -1336,29 +1336,29 @@ export class StringGenerator {
         vm.epilogue([VReg.S0], 16);
     }
 
-    // _is_jsbin_err(boxedVal) -> 1/0
-    // [#36] Error 族字符串化判别：tag==0x7FFD 的对象且含 __jsbin_err 品牌属性。
+    // _is_asmjs_err(boxedVal) -> 1/0
+    // [#36] Error 族字符串化判别：tag==0x7FFD 的对象且含 __asmjs_err 品牌属性。
     // 输入须为已装箱值（0x7FFD 对象）；非对象 tag 直接返 0，故 low48 解引前有守卫。
-    generateIsJsbinErr() {
+    generateIsAsmjsErr() {
         const vm = this.vm;
-        vm.label("_is_jsbin_err");
+        vm.label("_is_asmjs_err");
         vm.prologue(0, [VReg.S0]);
         vm.mov(VReg.S0, VReg.A0);
         vm.shrImm(VReg.V1, VReg.S0, 48);
         vm.cmpImm(VReg.V1, 0x7FFD);
-        vm.jne("_is_jsbin_err_no");
+        vm.jne("_is_asmjs_err_no");
         vm.mov(VReg.A0, VReg.S0);
-        vm.lea(VReg.A1, vm.asm.addString("__jsbin_err"));
+        vm.lea(VReg.A1, vm.asm.addString("__asmjs_err"));
         vm.movImm64(VReg.V1, 0x7ffc000000000000n);
         vm.or(VReg.A1, VReg.A1, VReg.V1);
         vm.call("_object_has");
         vm.cmpImm(VReg.RET, 0);
-        vm.jeq("_is_jsbin_err_no");
+        vm.jeq("_is_asmjs_err_no");
         vm.movImm(VReg.RET, 1);
-        vm.jmp("_is_jsbin_err_end");
-        vm.label("_is_jsbin_err_no");
+        vm.jmp("_is_asmjs_err_end");
+        vm.label("_is_asmjs_err_no");
         vm.movImm(VReg.RET, 0);
-        vm.label("_is_jsbin_err_end");
+        vm.label("_is_asmjs_err_end");
         vm.epilogue([VReg.S0], 0);
     }
 
@@ -4153,7 +4153,7 @@ export class StringGenerator {
         this.generateBoolToStr();
         this.generateToString();
         this.generateValueToStr(); // 智能值转字符串
-        this.generateIsJsbinErr(); // [#36] Error 族字符串化判别
+        this.generateIsAsmjsErr(); // [#36] Error 族字符串化判别
         this.generateErrorToStr(); // [#36] Error 对象 → "name: message"
         this.generateNumberToString(); // 数字转字符串
         this.generateDragon4Bignum(); // Dragon4 大整数原语(_floatToString 依赖)

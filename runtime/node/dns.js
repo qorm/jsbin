@@ -1,4 +1,4 @@
-// JSBin Runtime - Node.js dns
+// asm.js Runtime - Node.js dns
 
 export const dns = {
     lookup(hostname, options, callback) {

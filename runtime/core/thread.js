@@ -1,4 +1,4 @@
-// JSBin 运行时 - 裸 OS 线程原语(M3 预研,配方见 docs/PARALLEL_DESIGN.md §2.1)
+// asm.js 运行时 - 裸 OS 线程原语(M3 预研,配方见 docs/PARALLEL_DESIGN.md §2.1)
 // _thread_create_raw / _thread_join / _futex_wait / _futex_wake / _thread_smoke_child
 //
 // linux-arm64 / linux-x64 发射真实 clone()/futex 体;其余目标(macos/windows/wasm)

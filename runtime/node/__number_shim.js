@@ -1,4 +1,4 @@
-// JSBin Runtime - Number 格式化 shim(toExponential / toPrecision)
+// asm.js Runtime - Number 格式化 shim(toExponential / toPrecision)
 // codegen 把 n.toExponential(f)/n.toPrecision(p) 改派成 __NUM_* 调用(机理同 JSON shim)。
 // 纯 JS 实现,借 Math.log10/pow 定位指数、toFixed 做四舍五入,匹配 node 输出。
 
@@ -22,7 +22,7 @@ export function __NUM_toExponential(v, f) {
     }
     let mantStr;
     if (f === undefined || f === null) {
-        mantStr = "" + mant; // 无参:近似最短(jsbin 数字打印为定长)
+        mantStr = "" + mant; // 无参:近似最短(asm.js 数字打印为定长)
     } else {
         f = f | 0;
         mantStr = mant.toFixed(f);
@@ -40,7 +40,7 @@ export function __NUM_toLocaleString(v) {
     v = Number(v);
     if (v !== v) return "NaN";
     // [layout-determinism] U+221E (∞) 用 fromCharCode 构造,避免源码内非 ASCII 串字面量:
-    // jsbin 词法按字节读输入(不解 UTF-8),含非 ASCII 的串字面量在 node/jsbin 产不同字节
+    // asm.js 词法按字节读输入(不解 UTF-8),含非 ASCII 的串字面量在 node/asm.js 产不同字节
     // (双重 UTF-8 编码)→ 自举 g1≠g2。fromCharCode(8734) 无 interned 串字面量 → 确定性。
     if (v === Infinity) return String.fromCharCode(8734);
     if (v === -Infinity) return "-" + String.fromCharCode(8734);

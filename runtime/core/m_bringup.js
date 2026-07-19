@@ -1,4 +1,4 @@
-// JSBin 运行时 - 第二个 M(OS 线程)起跑管线(M3 预研,docs/PARALLEL_DESIGN.md §2.1/§4-M3)
+// asm.js 运行时 - 第二个 M(OS 线程)起跑管线(M3 预研,docs/PARALLEL_DESIGN.md §2.1/§4-M3)
 // _m_thread_entry / _m_bringup_second / _m_bringup_smoke
 //
 // 目标:把 M3 的"第二个 M 起跑"接线到位 —— 线程入口蹦床把 x28 绑到第二个 M 的上下文块、

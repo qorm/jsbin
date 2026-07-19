@@ -1,6 +1,6 @@
 // Minimal fixture runner: compiles each fixtures/**/main.js with gen0 (node cli.js),
 // runs the native binary, compares stdout/exitCode against fixture.json expectations.
-// JSBIN_FIXTURE_WASM=1:改编 wasm32-wasi 并经 scripts/wasm_host.mjs 运行(其余判定同一)。
+// ASMJS_FIXTURE_WASM=1:改编 wasm32-wasi 并经 scripts/wasm_host.mjs 运行(其余判定同一)。
 import { readFileSync, existsSync, readdirSync, statSync } from "fs";
 import { execFileSync } from "child_process";
 import { join, dirname } from "path";
@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const fixturesDir = join(root, "tests", "fixtures");
-const wasmMode = !!process.env.JSBIN_FIXTURE_WASM;
+const wasmMode = !!process.env.ASMJS_FIXTURE_WASM;
 const wasmHost = join(root, "scripts", "wasm_host.mjs");
 
 function findFixtures(dir) {

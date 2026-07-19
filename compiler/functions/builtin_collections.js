@@ -1,4 +1,4 @@
-// JSBin 编译器 - Map/Set/Date/RegExp 方法编译
+// asm.js 编译器 - Map/Set/Date/RegExp 方法编译
 // 编译 Map.set/get/has, Set.add/has, Date.getTime 等方法
 
 import { VReg } from "../../vm/index.js";

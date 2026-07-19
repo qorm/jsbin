@@ -1,7 +1,7 @@
 // [#49] RegExp shim 调用在嵌套函数/生成器体内正确解析(编译器合成的 __RE_* 调用
 // 在闭包分析之后展开,须经 functionAliases 直呼 _user_ 标签而非被静默丢弃)。
 // 同时覆盖 replace(re,fn) 的 arguments 对象与 matchAll+arguments。本文件在 node 下
-// 运行输出须与 jsbin 逐字节一致。
+// 运行输出须与 asm.js 逐字节一致。
 
 // 生成器体内 exec-while(g flag)
 function* ge(s) { var re = /\d+/g; var m; while ((m = re.exec(s)) !== null) yield m[0]; }

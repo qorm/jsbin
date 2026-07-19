@@ -1,6 +1,6 @@
 import process from "node:process";
 
-// JSBin 平台配置和检测
+// asm.js 平台配置和检测
 // 支持的目标平台定义
 
 export const TARGETS = {

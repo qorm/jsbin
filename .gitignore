@@ -21,7 +21,7 @@ gen2x
 gen2a
 gen2lx
 gen3
-jsbin-gen1
+asmjs-gen1
 *_compiled.out
 # 交叉编译 / 平台后缀产物
 *-macos-arm64
@@ -87,3 +87,5 @@ g3
 g1fs
 tests/es-compat/report.html
 tests/es-compat/last_report.txt
+# 备份 bundle(勿入库)
+*.bundle

@@ -84,7 +84,7 @@ function runSubcommand(args) {
 
     const target = wasm ? "wasm32-wasi" : detectPlatform();
     const tmpDir = process.env.TMPDIR || "/tmp";
-    const tmpOut = join(tmpDir, `jsbin-run-${basename(inputFile, ".js")}-${process.pid}${wasm ? ".wasm" : ""}`);
+    const tmpOut = join(tmpDir, `asmjs-run-${basename(inputFile, ".js")}-${process.pid}${wasm ? ".wasm" : ""}`);
 
     // 静默编译（无 Compiling.../Successfully 提示）
     try {

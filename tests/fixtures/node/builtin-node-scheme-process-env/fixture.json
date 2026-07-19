@@ -1,7 +1,7 @@
 {
   "description": "node:process should expose env as an object and see injected runtime variables",
   "env": {
-    "JSBIN_FIXTURE_TOKEN": "present"
+    "ASMJS_FIXTURE_TOKEN": "present"
   },
   "expect": {
     "parse": true,

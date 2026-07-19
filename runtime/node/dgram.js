@@ -1,4 +1,4 @@
-// JSBin Runtime - Node.js dgram (minimal but real UDP/IPv4 over sendto/recvfrom)
+// asm.js Runtime - Node.js dgram (minimal but real UDP/IPv4 over sendto/recvfrom)
 //
 // Rides net.js's single poll(2) readiness pump and IPv4 sockaddr helpers, so a
 // bound UDP socket fires 'message' events on its own inside the same event loop
@@ -23,7 +23,7 @@ const SOCK_DGRAM = 2;
 
 // Build a `struct msghdr` (+ one `iovec`) in native memory pointing at the
 // sockaddr `saPtr` and payload buffer `iovBase`/`iovLen`, for sendmsg/recvmsg.
-// recvmsg/sendmsg take 3 args (fd, &msghdr, flags), which fits jsbin's __syscall
+// recvmsg/sendmsg take 3 args (fd, &msghdr, flags), which fits asm.js's __syscall
 // 5-arg cap — unlike sendto/recvfrom (6 args). The zeroed 56-byte layout with
 // name@0, namelen@8, iov@16, iovlen@24, control@32, controllen@40, flags@48 is
 // shared by macOS (BSD, verified) and Linux LP64 (namelen/iovlen widths differ

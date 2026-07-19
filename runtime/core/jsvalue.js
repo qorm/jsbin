@@ -1,4 +1,4 @@
-// JSBin 值系统 - QuickJS 风格的 NaN-boxing
+// asm.js 值系统 - QuickJS 风格的 NaN-boxing
 //
 // ==================== 设计原理 ====================
 //

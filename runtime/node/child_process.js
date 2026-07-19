@@ -1,6 +1,6 @@
-// JSBin Runtime - Node.js child_process
+// asm.js Runtime - Node.js child_process
 //
-// 注意：此文件只在「被 jsbin 编译成 native」时链接;在 gen0(node cli.js)下运行时
+// 注意：此文件只在「被 asm.js 编译成 native」时链接;在 gen0(node cli.js)下运行时
 // 用的是 Node 真实 child_process。故此处可直接用 __syscall 等 native intrinsic。
 //
 // execSync/spawnSync（同步子进程捕获）：fork + 临时文件重定向 stdout + execve("/bin/sh",
@@ -125,8 +125,8 @@ function _runCapture(shArgs, captureStderr) {
     if (forkSc < 0 || execSc < 0) return { status: -1, signal: null, stdout: [], stderr: [] };
 
     const pid0 = __syscall(getSyscall("getpid"));
-    const outPath = "/tmp/jsbin_cp_" + pid0 + "_" + (_cpCounter++) + ".out";
-    const errPath = captureStderr ? "/tmp/jsbin_cp_" + pid0 + "_" + (_cpCounter++) + ".err" : null;
+    const outPath = "/tmp/asmjs_cp_" + pid0 + "_" + (_cpCounter++) + ".out";
+    const errPath = captureStderr ? "/tmp/asmjs_cp_" + pid0 + "_" + (_cpCounter++) + ".err" : null;
 
     // fork 前预建所有子进程要用的裸缓冲(COW 传给子进程,子进程侧零 JS 分配)。
     const outPathBuf = _cstr(outPath);
@@ -274,7 +274,7 @@ function _readableOf(payload) {
 }
 
 // Build a ChildProcess-like object from a completed synchronous capture.
-// NOTE: jsbin has no true asynchronous subprocess — the command is run
+// NOTE: asm.js has no true asynchronous subprocess — the command is run
 // synchronously (fork + wait) inside spawn()/exec(); its stdout/stderr are then
 // replayed as streams and 'exit'/'close' fire on a later microtask, so listeners
 // registered right after the call still receive the events. A single ordered

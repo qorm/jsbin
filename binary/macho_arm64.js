@@ -69,7 +69,7 @@ export class MachOARM64Generator {
     write(byte) {
         // 先取局部再 push(#18 实验兼优化):`this.buffer.push` 是成员 push,编译器
         // 对其发射「push + _object_set 写回成员」——12MB 产物 = 1200 万次属性写回。
-        // jsbin 数组头地址稳定(ensure_cap 原地更新 data_ptr),写回本是恒等操作;
+        // asm.js 数组头地址稳定(ensure_cap 原地更新 data_ptr),写回本是恒等操作;
         // 局部引用 push 走 Identifier 写回(栈槽),同时作为「成员写回路径踩踏产物
         // 尾部」假说的判别实验(见任务 #18)。
         const b = this.buffer;

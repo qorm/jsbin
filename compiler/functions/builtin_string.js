@@ -1,4 +1,4 @@
-// JSBin 编译器 - String 方法编译
+// asm.js 编译器 - String 方法编译
 // 编译 toUpperCase, toLowerCase, charAt, trim, slice 等字符串方法
 
 import { VReg } from "../../vm/index.js";

@@ -1,4 +1,4 @@
-// JSBin 编译器 - console.log 处理
+// asm.js 编译器 - console.log 处理
 // 抽取 console.log 编译逻辑，减少 functions.js 体积
 
 import { VReg } from "../../vm/index.js";

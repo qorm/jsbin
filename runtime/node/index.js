@@ -1,4 +1,4 @@
-// JSBin Runtime - Node.js Compatibility Layer
+// asm.js Runtime - Node.js Compatibility Layer
 // Main entry point that imports and exports all Node.js modules
 
 import constants from "./constants.js";

@@ -1,4 +1,4 @@
-// JSBin 编译器 - 循环与条件语句编译
+// asm.js 编译器 - 循环与条件语句编译
 
 import { VReg } from "../../vm/index.js";
 import { Type, inferType } from "../core/types.js";

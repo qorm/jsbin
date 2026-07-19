@@ -1,4 +1,4 @@
-// JSBin 运行时 - Map 支持
+// asm.js 运行时 - Map 支持
 // 实现 JavaScript Map 对象：插入序链表 + 哈希桶索引（均摊 O(1) get/has/set/delete）
 //
 // Map 对象内存布局（48 字节头，头指针稳定，扩容只换 buckets_ptr/bucket_count）:

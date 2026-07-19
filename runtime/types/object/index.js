@@ -1,4 +1,4 @@
-// JSBin 对象运行时
+// asm.js 对象运行时
 // 提供对象操作函数
 
 import { VReg } from "../../../vm/registers.js";
@@ -121,7 +121,7 @@ export class ObjectGenerator {
     }
 
     // ---- 闭包/函数自定义属性侧表(fn.x = 1)----
-    // jsbin 函数是闭包/裸函数指针,无属性容器(对象头的 props_ptr@32 / flags_ptr@40)。
+    // asm.js 函数是闭包/裸函数指针,无属性容器(对象头的 props_ptr@32 / flags_ptr@40)。
     // 侧表:数据段链表头 _closure_props_registry(GC 根,位于 _data_gc_end 前 → 挂的 props
     // 对象与其属性常驻),节点 24B {fn 裸指针键@0, props 对象裸指针@8, next@16}。非移动
     // mark-sweep GC → 裸指针键稳定。语义偏差:得过自定义属性的函数被侧表钉住不回收(有界泄漏,
@@ -1184,7 +1184,7 @@ export class ObjectGenerator {
 
     // _throw_read_nullish(A0 = null/undefined 基对象, A1 = boxed 属性名字符串)
     // 构造 `TypeError: Cannot read properties of null|undefined (reading '<prop>')`
-    // 普通对象 {name,message,__jsbin_err,cause}(与 emitThrowTypeError 同表示,故
+    // 普通对象 {name,message,__asmjs_err,cause}(与 emitThrowTypeError 同表示,故
     // `e instanceof TypeError`/`e.name`/`e.message` 成立),置异常槽后 _throw_unwind
     // 跨帧交给最近 try/catch(链空则退出码 1,与未捕获一致)。不返回。
     generateThrowReadNullish() {
@@ -1228,9 +1228,9 @@ export class ObjectGenerator {
         vm.lea(VReg.A1, vm.asm.addString("message")); boxStr(VReg.A1);
         vm.mov(VReg.A2, VReg.S0);
         vm.call("_object_set");
-        // __jsbin_err = true(instanceof Error 族品牌)
+        // __asmjs_err = true(instanceof Error 族品牌)
         vm.mov(VReg.A0, VReg.S2);
-        vm.lea(VReg.A1, vm.asm.addString("__jsbin_err")); boxStr(VReg.A1);
+        vm.lea(VReg.A1, vm.asm.addString("__asmjs_err")); boxStr(VReg.A1);
         vm.movImm64(VReg.A2, 0x7ff9000000000001n); // boxed true
         vm.call("_object_set");
         // cause = undefined(否则 e.cause 缺属性返 int 0 非 undefined)
@@ -1752,7 +1752,7 @@ export class ObjectGenerator {
 
         // 找到已有属性，更新 value（S5 指向旧 props 数组内的属性，未增长，稳定）
         vm.label(foundLabel);
-        // [#61 P1] 冻结对象拒绝改写已有属性值(sloppy 静默,jsbin 无 strict)。
+        // [#61 P1] 冻结对象拒绝改写已有属性值(sloppy 静默,asm.js 无 strict)。
         // byte1 & EXT_FROZEN;普通对象 byte1=0 一条 and 即过。seal/preventExtensions
         // 不置 FROZEN 位,故仍可改写已有值(符合 ES 语义)。
         vm.loadByte(VReg.V0, VReg.S0, 1);
@@ -2589,9 +2589,9 @@ export class ObjectGenerator {
         vm.cmpImm(VReg.V0, 7); vm.jeq("_opts_date");   // TYPE_DATE
         vm.cmpImm(VReg.V0, 4); vm.jeq("_opts_maybe_weakmap"); // TYPE_MAP(含 WeakMap)
         vm.cmpImm(VReg.V0, 5); vm.jeq("_opts_maybe_weakset"); // TYPE_SET(含 WeakSet)
-        // Error 品牌(__jsbin_err)
+        // Error 品牌(__asmjs_err)
         vm.mov(VReg.A0, VReg.S0);
-        vm.call("_is_jsbin_err");
+        vm.call("_is_asmjs_err");
         vm.cmpImm(VReg.RET, 0); vm.jne("_opts_error");
         // RegExp shim 对象(__isRegExp 属性)
         vm.mov(VReg.A0, VReg.S0);

@@ -1,4 +1,4 @@
-// JSBin 编译器 - 库文件解析模块
+// asm.js 编译器 - 库文件解析模块
 // 解析 .jslib 文件，处理动态库和静态库导入
 
 import * as fs from "fs";

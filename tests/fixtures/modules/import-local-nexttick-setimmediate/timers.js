@@ -1,3 +1,3 @@
 export function setImmediate(callback, ...args) {
-    __jsbinNextTick(callback);
+    __asmjsNextTick(callback);
 }

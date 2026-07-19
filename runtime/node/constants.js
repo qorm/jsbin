@@ -1,4 +1,4 @@
-// JSBin Runtime - Node.js Constants
+// asm.js Runtime - Node.js Constants
 export const constants = {
     EOF: 0
 };

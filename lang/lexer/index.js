@@ -1,4 +1,4 @@
-// JSBin - JavaScript 词法分析器
+// asm.js - JavaScript 词法分析器
 // 将源代码转换为词法单元流
 
 import { TokenType, newToken, lookupIdent } from "./token.js";
@@ -60,12 +60,12 @@ export class Lexer {
         return this.input[pos];
     }
 
-    // 把码点编码为 UTF-8 字节串(每字节一个 char),供 \u / \x 转义解码。jsbin 字符串是逐字节
+    // 把码点编码为 UTF-8 字节串(每字节一个 char),供 \u / \x 转义解码。asm.js 字符串是逐字节
     // 的(String.fromCharCode 截为字节),故转义必须**展开成 UTF-8 字节**再拼接——不能
     // fromCharCode(码点) 直接存(g1 截低字节 → mojibake;node 存码点、发射器再 UTF-8 编码 →
     // 两侧字节分歧)。源码本身按 latin1(逐字节)读入,故原始 UTF-8 字符已是字节序列直接透传;
     // 发射器(asm/*.js)逐字节透传,故此处产出的 UTF-8 字节原样进产物,node/g1 一致且正确。
-    // cp===0 或 NaN 产空串(A 的 NUL-drop:jsbin C-string 无法承载内嵌 NUL)。
+    // cp===0 或 NaN 产空串(A 的 NUL-drop:asm.js C-string 无法承载内嵌 NUL)。
     _cpToUtf8(cp) {
         if (cp === 0 || cp !== cp) return "";
         if (cp < 0x80) return String.fromCharCode(cp);
@@ -277,10 +277,10 @@ export class Lexer {
                 } else if (this.ch === "'") {
                     result = result + "'";
                 } else if (this.ch === "0") {
-                    // [layout-determinism] \0 转义产出空串,不产 NUL 字符。jsbin 的字符串是
-                    // C-string(NUL 结尾)语义,拼接 NUL 会截断整串 → node(保留 NUL)与 jsbin
+                    // [layout-determinism] \0 转义产出空串,不产 NUL 字符。asm.js 的字符串是
+                    // C-string(NUL 结尾)语义,拼接 NUL 会截断整串 → node(保留 NUL)与 asm.js
                     // (截断)对含 \0 的串字面量产不同字节 → 自举 g1≠g2 残差(雷区最后根因)。
-                    // 两端一致丢弃 NUL(jsbin 本就无法承载)→ 确定性。需要真 NUL 字节的二进制
+                    // 两端一致丢弃 NUL(asm.js 本就无法承载)→ 确定性。需要真 NUL 字节的二进制
                     // 写入(ELF/Mach-O 串表)改用字节数组构建,不依赖串内 NUL。
                     result = result + "";
                 } else if (this.ch === "b") {

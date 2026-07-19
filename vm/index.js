@@ -1,4 +1,4 @@
-// JSBin 虚拟机 - 核心抽象层
+// asm.js 虚拟机 - 核心抽象层
 // 提供统一的指令接口，由后端翻译为目标平台代码
 
 import { VReg } from "./registers.js";

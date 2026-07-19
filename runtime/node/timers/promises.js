@@ -1,5 +1,5 @@
-// JSBin Runtime - Node.js timers/promises
-// 注:jsbin 无真实定时;这里以已解决 Promise 交付值(微任务时序,非真延时)。
+// asm.js Runtime - Node.js timers/promises
+// 注:asm.js 无真实定时;这里以已解决 Promise 交付值(微任务时序,非真延时)。
 // await setTimeout(ms, v) 立即在微任务点解决为 v,足够覆盖顺序/值语义。
 
 export function setTimeout(delay, value, options) {

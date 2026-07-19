@@ -1,4 +1,4 @@
-// JSBin 数组运行时
+// asm.js 数组运行时
 // 提供数组操作函数
 //
 // 数组内存布局（元素区独立分配，数组头指针稳定、可原地增长）:
@@ -2416,7 +2416,7 @@ export class ArrayGenerator {
     }
 
     // _array_keys(A0=boxed array) -> boxed [0,1,...,len-1]
-    // jsbin 把数组迭代器建模为即时数组(与 values() 落接收者、Object.keys 同策)。
+    // asm.js 把数组迭代器建模为即时数组(与 values() 落接收者、Object.keys 同策)。
     generateArrayKeys() {
         const vm = this.vm;
         vm.label("_array_keys");

@@ -1,4 +1,4 @@
-// JSBin 编译器 - 函数和复合类型编译（聚合模块）
+// asm.js 编译器 - 函数和复合类型编译（聚合模块）
 // 导入并组合所有函数相关的编译器
 
 import { VReg } from "../../vm/index.js";
@@ -1091,7 +1091,7 @@ export const FunctionCompiler = {
         }
 
         // obj.hasOwnProperty(key) 直接方法调用 → _object_has + 规范布尔。
-        // jsbin 对象无 Object.prototype 链,直接调会在普通成员派发里属性 miss(→0)
+        // asm.js 对象无 Object.prototype 链,直接调会在普通成员派发里属性 miss(→0)
         // 再把 0 当函数调用 → 段错误(missbug 崩点)。与上面 .call 形式同构拦截。
         if (callee.type === "MemberExpression" && !callee.computed && callee.property &&
             callee.property.name === "hasOwnProperty" && expr.arguments.length >= 1) {
@@ -1137,7 +1137,7 @@ export const FunctionCompiler = {
             const thisOffset = this.ctx.getLocal("__this");
             // 父类是内建 Error 族:无类信息对象/无可调构造函数(new Error 全内联),
             // 直接 callIndirect 到 0 会 SIGSEGV。super(msg) 内联为在 this 上落
-            // message/__jsbin_err/name(仿 expressions.js 的 new Error 语义);
+            // message/__asmjs_err/name(仿 expressions.js 的 new Error 语义);
             // 子类构造体后续 this.name= 可覆盖。AggregateError(errors, msg):
             // errors=arg0、message=arg1。
             const ERR_TYPES = ["Error", "TypeError", "RangeError", "SyntaxError",
@@ -1169,9 +1169,9 @@ export const FunctionCompiler = {
                 this.emitBoxedStringKey("message", VReg.A1);
                 this.vm.load(VReg.A2, VReg.FP, msgSlot);
                 this.vm.call("_object_set");
-                // __jsbin_err = true(instanceof Error 族依赖此标记)
+                // __asmjs_err = true(instanceof Error 族依赖此标记)
                 this.vm.load(VReg.A0, VReg.FP, thisOffset);
-                this.emitBoxedStringKey("__jsbin_err", VReg.A1);
+                this.emitBoxedStringKey("__asmjs_err", VReg.A1);
                 this.vm.movImm64(VReg.A2, 0x7ff9000000000001n); // was lea+load _js const
                 this.vm.call("_object_set");
                 // name = <ErrorType>(默认;子类构造体 this.name= 覆盖)
@@ -1533,16 +1533,16 @@ export const FunctionCompiler = {
                 return;
             }
 
-            // 事件循环内建：queueMicrotask 与 node:timers 委托用的 __jsbin_* 桥接函数。
+            // 事件循环内建：queueMicrotask 与 node:timers 委托用的 __asmjs_* 桥接函数。
             // 求出第一个参数（回调/句柄）到 A0，调对应运行时函数；返回值在 RET。
-            // 事件循环内建。除 node:timers 委托的 __jsbin_* 桥接外,也直接接住裸全局
+            // 事件循环内建。除 node:timers 委托的 __asmjs_* 桥接外,也直接接住裸全局
             // setTimeout/setImmediate/clearTimeout/clearImmediate(Node 全局,无需 import)。
-            // 一次性语义:jsbin 无真定时器,回调在退出前 _ev_run drain 时执行(delay 忽略,
+            // 一次性语义:asm.js 无真定时器,回调在退出前 _ev_run drain 时执行(delay 忽略,
             // 取 arguments[0] 回调)。setInterval/clearInterval 不接(无重复计时基建,见 backlog)。
-            if (callee.name === "queueMicrotask" || callee.name === "__jsbin_queueMicrotask" ||
-                callee.name === "__jsbinNextTick" ||
-                callee.name === "__jsbin_setTimeout" || callee.name === "__jsbin_setImmediate" ||
-                callee.name === "__jsbin_clearTimer" ||
+            if (callee.name === "queueMicrotask" || callee.name === "__asmjs_queueMicrotask" ||
+                callee.name === "__asmjsNextTick" ||
+                callee.name === "__asmjs_setTimeout" || callee.name === "__asmjs_setImmediate" ||
+                callee.name === "__asmjs_clearTimer" ||
                 callee.name === "setTimeout" || callee.name === "setImmediate" ||
                 callee.name === "clearTimeout" || callee.name === "clearImmediate") {
                 if (expr.arguments.length > 0) {
@@ -1551,9 +1551,9 @@ export const FunctionCompiler = {
                 } else {
                     this.vm.movImm64(VReg.A0, 0x7ffb000000000000n); // undefined
                 }
-                const rtFn = (callee.name === "__jsbin_setTimeout" || callee.name === "setTimeout") ? "_ev_set_timeout"
-                    : (callee.name === "__jsbin_setImmediate" || callee.name === "setImmediate") ? "_ev_set_immediate"
-                    : (callee.name === "__jsbin_clearTimer" || callee.name === "clearTimeout" || callee.name === "clearImmediate") ? "_ev_clear"
+                const rtFn = (callee.name === "__asmjs_setTimeout" || callee.name === "setTimeout") ? "_ev_set_timeout"
+                    : (callee.name === "__asmjs_setImmediate" || callee.name === "setImmediate") ? "_ev_set_immediate"
+                    : (callee.name === "__asmjs_clearTimer" || callee.name === "clearTimeout" || callee.name === "clearImmediate") ? "_ev_clear"
                     : "_ev_queue_microtask";
                 this.vm.call(rtFn);
                 return;
@@ -2273,7 +2273,7 @@ export const FunctionCompiler = {
                 if (libInfo) {
                     if (libInfo.type === "static") {
                         // 静态库：代码已嵌入
-                        // JSBin 编译的静态库使用整数寄存器传递参数，直接调用内部函数
+                        // asm.js 编译的静态库使用整数寄存器传递参数，直接调用内部函数
                         const funcLabel = this.getFunctionLabel(callee.name);
                         if (funcLabel) {
                             this.compileCallArguments(expr.arguments);
@@ -2585,7 +2585,7 @@ export const FunctionCompiler = {
             // String 静态方法
             if (obj.type === "Identifier" && obj.name === "String") {
                 // fromCodePoint 在 BMP(码点 < 0x10000)等价 fromCharCode;astral 需代理对/多字节
-                // (jsbin UTF-8 模型),记偏差。此前 fromCodePoint 未实现 → 崩。
+                // (asm.js UTF-8 模型),记偏差。此前 fromCodePoint 未实现 → 崩。
                 if (prop.name === "fromCharCode" || prop.name === "fromCodePoint") {
                     if (expr.arguments.length === 0) {
                         this.vm.lea(VReg.A0, "_str_empty");
@@ -2873,7 +2873,7 @@ export const FunctionCompiler = {
 
             // Object 静态方法
             // Reflect.* 静态方法:脱糖为等价的成员访问/赋值/in/delete/Object.keys 等
-            // (Reflect 标识符本身在 jsbin 里非真对象;这里只识别 Reflect.<method>(...) 调用形)。
+            // (Reflect 标识符本身在 asm.js 里非真对象;这里只识别 Reflect.<method>(...) 调用形)。
             if (obj.type === "Identifier" && obj.name === "Reflect") {
                 const rargs = expr.arguments;
                 // Reflect.get(target, key) → target[key]
@@ -3837,7 +3837,7 @@ export const FunctionCompiler = {
                 // [#36] Error 族对象.toString() → "name: message"(否则落通用路径找不到
                 // toString 方法而崩)。obj 仍在栈顶,装箱 0x7FFD。
                 this.vm.load(VReg.A0, VReg.SP, 0);
-                this.vm.call("_is_jsbin_err");
+                this.vm.call("_is_asmjs_err");
                 this.vm.cmpImm(VReg.RET, 0);
                 this.vm.jne(tsErrLbl);
                 this.vm.load(VReg.V0, VReg.SP, 0);
@@ -4400,7 +4400,7 @@ export const FunctionCompiler = {
             // 如果无法确定类型，尝试所有可能的方法（旧的回退逻辑）
             if (objType === "unknown") {
                 // String 方法 - 对于未知类型，也尝试字符串方法。
-                // 排除 normalize:它既是 String.prototype.normalize(jsbin 字节模型下为
+                // 排除 normalize:它既是 String.prototype.normalize(asm.js 字节模型下为
                 // 恒等),又是常见对象方法名(path.normalize/url 等)。对 unknown 接收者
                 // 强行当字符串会把对象参数原样返回([object Object]),劫持掉真正的对象
                 // 方法。已知 String 接收者仍走上面的 String 分支;编译器自身不调 .normalize()。
@@ -4484,7 +4484,7 @@ export const FunctionCompiler = {
             }
 
             // [#61 P2] obj.propertyIsEnumerable(key) → 运行时读 own 属性 enumerable 位。
-            // jsbin 对象无 Object.prototype 链,直接内联到运行时 helper。
+            // asm.js 对象无 Object.prototype 链,直接内联到运行时 helper。
             if (prop && prop.type === "Identifier" && !callee.computed &&
                 prop.name === "propertyIsEnumerable" && expr.arguments.length >= 1) {
                 this.compileExpression(obj);

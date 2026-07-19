@@ -1,4 +1,4 @@
-// JSBin 编译器 - 字面量编译
+// asm.js 编译器 - 字面量编译
 // 编译各类字面量：数字、字符串、布尔值等
 
 import { VReg } from "../../vm/index.js";

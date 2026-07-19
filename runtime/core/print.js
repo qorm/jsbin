@@ -1,4 +1,4 @@
-// JSBin 打印运行时
+// asm.js 打印运行时
 // 提供输出函数
 
 import { VReg } from "../../vm/registers.js";
@@ -588,9 +588,9 @@ export class PrintGenerator {
 
         // object pointer
         vm.label("_print_value_object_ptr");
-        // 分派顺序关键:先 Date(避免下方 _is_jsbin_err 把 Date 当 Error 解引用崩),
-        // 再 _is_jsbin_err(Error 族 → "name: message",Error 也是 TYPE_OBJECT,故必须先于
-        // 属性打印器,否则打成 { name:.., __jsbin_err:.. }),再普通对象(TYPE_OBJECT → 属性
+        // 分派顺序关键:先 Date(避免下方 _is_asmjs_err 把 Date 当 Error 解引用崩),
+        // 再 _is_asmjs_err(Error 族 → "name: message",Error 也是 TYPE_OBJECT,故必须先于
+        // 属性打印器,否则打成 { name:.., __asmjs_err:.. }),再普通对象(TYPE_OBJECT → 属性
         // 打印器 "{ k: v }"),否则 → "[object Object]"。
         vm.mov(VReg.V0, VReg.S0);
         vm.emitMaskLoad(VReg.V1);
@@ -599,22 +599,22 @@ export class PrintGenerator {
         vm.andImm(VReg.V2, VReg.V2, 0xff);
         vm.cmpImm(VReg.V2, TYPE_DATE);
         vm.jeq("_print_value_heap_date");
-        // Map/Set(先于 _is_jsbin_err:它们非属性对象,err 检查/error_to_str 遍历会崩)。
+        // Map/Set(先于 _is_asmjs_err:它们非属性对象,err 检查/error_to_str 遍历会崩)。
         vm.cmpImm(VReg.V2, 4); // TYPE_MAP
         vm.jeq("_print_value_map");
         vm.cmpImm(VReg.V2, 5); // TYPE_SET
         vm.jeq("_print_value_set");
-        // Promise(装箱 0x7FFD,类型字节 11):先于 _is_jsbin_err 短路——promise 非属性对象
-        // (布局 [type,status@8,value@16,...]),_is_jsbin_err 遍历会解引用非法 → 段错误
+        // Promise(装箱 0x7FFD,类型字节 11):先于 _is_asmjs_err 短路——promise 非属性对象
+        // (布局 [type,status@8,value@16,...]),_is_asmjs_err 遍历会解引用非法 → 段错误
         // (console.log(Promise.resolve(1)) 崩根因)。→ _print_promise "Promise { <state> }"。
         vm.cmpImm(VReg.V2, TYPE_PROMISE);
         vm.jeq("_print_value_promise");
         // [#36] Error 族对象 → "name: message"（console.log(err) 对齐 node）。
         vm.mov(VReg.A0, VReg.S0);
-        vm.call("_is_jsbin_err");
+        vm.call("_is_asmjs_err");
         vm.cmpImm(VReg.RET, 0);
         vm.jne("_print_value_obj_err");
-        // 非 Error:重读类型(_is_jsbin_err 毁 V0/V2),TYPE_OBJECT → 属性打印器,否则占位。
+        // 非 Error:重读类型(_is_asmjs_err 毁 V0/V2),TYPE_OBJECT → 属性打印器,否则占位。
         vm.mov(VReg.V0, VReg.S0);
         vm.emitMaskLoad(VReg.V1);
         vm.andMaskReg(VReg.V0, VReg.V0, VReg.V1);
@@ -1364,12 +1364,12 @@ export class PrintGenerator {
         vm.jmp(doneLabel);
 
         // 0x7FFD 普通对象(TYPE_OBJECT @ [user+0]):Error 族 → "name: message"(嵌套/多参
-        // 一致,避免泄露 __jsbin_err 内部字段);否则 → 属性打印器 "{ k: v }"。
-        // _is_jsbin_err/_error_to_str 吃装箱值,S0 已脱壳故重打 0x7ffd 标签。
+        // 一致,避免泄露 __asmjs_err 内部字段);否则 → 属性打印器 "{ k: v }"。
+        // _is_asmjs_err/_error_to_str 吃装箱值,S0 已脱壳故重打 0x7ffd 标签。
         vm.label("_print_vnl_boxed_object");
         vm.movImm64(VReg.V1, 0x7ffd000000000000n);
         vm.or(VReg.A0, VReg.S0, VReg.V1);
-        vm.call("_is_jsbin_err");
+        vm.call("_is_asmjs_err");
         vm.cmpImm(VReg.RET, 0);
         vm.jeq("_print_vnl_obj_props");
         vm.movImm64(VReg.V1, 0x7ffd000000000000n);

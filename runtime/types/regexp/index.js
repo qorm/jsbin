@@ -1,4 +1,4 @@
-// JSBin 运行时 - RegExp 支持
+// asm.js 运行时 - RegExp 支持
 // 实现 JavaScript 正则表达式的基本功能
 // 注意：这是一个简化版本，只支持基本的字符串匹配
 

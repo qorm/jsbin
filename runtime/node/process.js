@@ -1,5 +1,5 @@
-// JSBin Runtime - Node.js process
-// Provides process object for JSBin compiled binaries
+// asm.js Runtime - Node.js process
+// Provides process object for asm.js compiled binaries
 
 import { syscallWrite } from "./_string.js";
 import { getSyscall } from "./constants.js";
@@ -12,8 +12,8 @@ class _process {
     static get platform() { return platform; }
     static get arch() { return arch; }
     static get argv() { return _proc.argv || []; }
-    static get argv0() { const a = _proc.argv; return (a && a[0]) || "jsbin"; }
-    static get execPath() { const a = _proc.argv; return (a && a[0]) || "/jsbin"; }
+    static get argv0() { const a = _proc.argv; return (a && a[0]) || "asm.js"; }
+    static get execPath() { const a = _proc.argv; return (a && a[0]) || "/asm.js"; }
     static get env() { return _proc.env || {}; }
     static cwd() { return (_proc && _proc.cwd) || "/"; }
     static chdir(dir) {
@@ -84,10 +84,10 @@ class _process {
     }
     static getActiveResourcesInfo() { return []; }
     static binding(name) {
-        throw new Error("process.binding is not supported in JSBin");
+        throw new Error("process.binding is not supported in asm.js");
     }
     static _linkedBinding(name) {
-        throw new Error("process._linkedBinding is not supported in JSBin");
+        throw new Error("process._linkedBinding is not supported in asm.js");
     }
     static _events() { return {}; }
     static _rawDebug(...args) { console.error(...args); }
@@ -114,7 +114,7 @@ class _process {
     static callbackify() { }
 
     static nextTick(callback, ...args) {
-        __jsbinNextTick?.(() => callback(...args)) || callback(...args);
+        __asmjsNextTick?.(() => callback(...args)) || callback(...args);
     }
 
     static send(message, sendHandle, options, callback) {

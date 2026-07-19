@@ -1,3 +1,3 @@
 export function schedule(callback) {
-    __jsbinNextTick(callback);
+    __asmjsNextTick(callback);
 }

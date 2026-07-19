@@ -1,8 +1,8 @@
-// JSBin Runtime - Node.js path
-// Provides path utilities for JSBin compiled binaries
+// asm.js Runtime - Node.js path
+// Provides path utilities for asm.js compiled binaries
 
 const platform = __get_process().platform || "macos";
-// 分隔符统一用 "/"——jsbin 整个代码库(及自举源码)一律用正斜杠路径,Windows 文件 API
+// 分隔符统一用 "/"——asm.js 整个代码库(及自举源码)一律用正斜杠路径,Windows 文件 API
 // (CreateFileA 等)也接受 "/"。原先 win32 用 "\\" 会让 dirname("a/b.js") 找不到 "\\"
 // 返 "."、resolve 产出混合分隔符(".\a/b\c"),导致自举时深层导入路径被搞乱、模块解析
 // 中途丢失(89 模块只发现 26)。用 "/" 使全平台路径操作一致。
@@ -109,7 +109,7 @@ export function relative(from, to) {
 }
 
 // 默认导出改**普通对象**(属性=具名函数闭包,2026-07-14):此前是类静态——
-// jsbin 的通用对象方法派发(_object_get)看不见类静态,`path.join` 又与数组
+// asm.js 的通用对象方法派发(_object_get)看不见类静态,`path.join` 又与数组
 // join 同名被方法派发拦截 → 用户方法分支 _object_get miss 调垃圾崩。普通对象
 // 的属性即闭包,_object_get 直取,与 join 运行时 tag 派发(非数组→用户方法)
 // 天然契合。定参转发(勿 rest+spread:class static (...args){f(...args)} 曾产坏值)。

@@ -1,4 +1,4 @@
-// JSBin 字符串运行时 - 基础操作
+// asm.js 字符串运行时 - 基础操作
 // 提供底层字符串操作函数
 
 import { VReg } from "../../../vm/registers.js";

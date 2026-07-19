@@ -1,4 +1,4 @@
-// JSBin 编译器 - 异步函数编译
+// asm.js 编译器 - 异步函数编译
 // 编译 async 函数和 await 表达式
 
 import { VReg } from "../../vm/index.js";

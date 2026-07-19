@@ -1,4 +1,4 @@
-// JSBin 运行时 - 无符号整数类型
+// asm.js 运行时 - 无符号整数类型
 // uint8, uint16, uint32, uint64
 
 import { VReg } from "../../../vm/registers.js";

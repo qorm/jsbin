@@ -1,4 +1,4 @@
-// JSBin 运行时 - 浮点数类型
+// asm.js 运行时 - 浮点数类型
 // float32 (IEEE 754 单精度), float64 (IEEE 754 双精度)
 
 import { VReg } from "../../../vm/registers.js";
