@@ -72,7 +72,7 @@
 - [ ] N3 收尾: fs `statSync`/`readdirSync` 深度(需先解自举堆布局脆性)
 - [ ] N4 启动: 20 个真实 npm 包验证集
 - [ ] 字符串 O(N²) 拼接专项(PERF_PLAN 自封 #1,实测 ~206× vs node): rope 或可变累加缓冲,先出设计评审再动手
-- [ ] **编译速度专项**(2026-07-19 实测立案): 出厂编译器自编译 25.5s vs node 1.55s(~16×)。瓶颈定位:时间均匀散布在编译器 JS 逻辑的属性访问/调用上,被运行时**属性访问 ~13×** 差距放大;已排除 GC/字符串拼接/调用次数(emit32 批量 push、macho 批量写出、GC-off 三项实测收益均 ~0,c3e20ba 已顺手提交)。真杠杆 = 属性访问/内联缓存性能(PERF_PLAN P3 完整 IR 线 + ARCH_OPTIMIZATION_SUGGESTIONS 支柱),先出设计评审再动手
+- [ ] **编译速度专项**(2026-07-19 实测立案): 出厂编译器自编译 25.5s vs node 1.55s(~16×)。瓶颈定位:自编译主瓶颈是**方法调用无缓存**(每次全帧 _object_get + 原型链递归;agent-4 核实到行号);数据属性访问 ~13× 次之。已排除 GC/字符串拼接/调用次数(emit32 批量 push、macho 批量写出、GC-off 三项实测收益均 ~0,c3e20ba 已顺手提交)。路线(维护者定三项按序全做): ①**支柱②去虚拟化**(**v1 已落地 7dcdc99**:全图预登记+接收者推断+子类覆写/实例遮蔽双守卫,4539 调用点直编 direct call,自编译 25.5s → **23.6s(−7.5%)**)② P5 原型方法缓存(动态路径运行时 IC)③ 形状/隐藏类 IC(数据属性,docs/SHAPE_IC_DESIGN.md)
 - [ ] "定点迁移"机制设计: 受控打破 gen2==gen3 一步(双代过渡),偿还 existsSync 假阳性、`\0` 转义丢弃等被定点固化的正确性债
 - [ ] **L1 决策点**: AOT 嵌入库是否仍是产品目标(地基 `binary/*_object.js`/`static_linker.js` 现成;L2 route B 已覆盖大部分需求)——S5 开始前给出 go/no-go
 - [ ] **C 互操作跟进**(2026-07-19 主人指定): 设计已定稿 `docs/C_INTEROP_DESIGN.md`(①消费 C 动态库 ②消费 C 静态库 ③JS 产出库,C0–C6 阶段 + macOS arm64 实证基线,实证产物在 `.agent-work/c-interop-probe/`);**声明层已改决议**:废弃 .jslib,直接消费 C 头文件——见 `docs/C_HEADER_DECLARATION.md`(zlib 为首个验收靶);C0 修复排期与 L1 决策联动
