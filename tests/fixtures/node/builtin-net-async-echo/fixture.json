@@ -1,0 +1,10 @@
+{
+  "description": "node:net event-driven async TCP over loopback: server.on('connection') + socket.on('data'/'end') fire on their own via the poll readiness pump wired into the event loop; client half-closes with end() and reads the reply",
+  "expect": {
+    "parse": true,
+    "compile": true,
+    "run": true,
+    "stdout": "server recv ping\nserver end\nclient recv reply:ping\nclient end",
+    "exitCode": 0
+  }
+}

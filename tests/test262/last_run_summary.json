@@ -1,0 +1,195 @@
+{
+  "generated": "2026-07-17T10:41:39.305Z",
+  "config": {
+    "corpus": "/Users/dmy/work/jsbin/.test262-corpus",
+    "target": "macos-arm64",
+    "dirs": [
+      "language/expressions",
+      "language/statements",
+      "built-ins/Array",
+      "built-ins/Object",
+      "built-ins/String",
+      "built-ins/Number",
+      "built-ins/Math",
+      "built-ins/JSON",
+      "built-ins/Map",
+      "built-ins/Set",
+      "built-ins/TypedArray",
+      "built-ins/RegExp",
+      "built-ins/Promise",
+      "built-ins/Boolean",
+      "built-ins/Symbol"
+    ],
+    "stride": 5,
+    "max": 0,
+    "jobs": 10
+  },
+  "discovered": 33776,
+  "excluded": {
+    "module": 83,
+    "feature": 1383,
+    "dir": 0
+  },
+  "excludedFeatureCounts": {
+    "cross-realm": 74,
+    "Array.fromAsync": 95,
+    "SharedArrayBuffer": 10,
+    "explicit-resource-management": 179,
+    "tail-call-optimization": 34,
+    "decorators": 24,
+    "dynamic-import": 688,
+    "source-phase-imports": 237,
+    "import-attributes": 42
+  },
+  "eligible": 32310,
+  "run": 6462,
+  "totals": {
+    "PASS": 1318,
+    "FAIL": 4085,
+    "COMPILE_FAIL": 601,
+    "CRASH": 458
+  },
+  "passRatePct": 20.4,
+  "byArea": {
+    "built-ins/Array": {
+      "PASS": 121,
+      "FAIL": 320,
+      "COMPILE_FAIL": 1,
+      "CRASH": 152
+    },
+    "built-ins/Boolean": {
+      "PASS": 1,
+      "FAIL": 8,
+      "COMPILE_FAIL": 0,
+      "CRASH": 1
+    },
+    "built-ins/JSON": {
+      "PASS": 8,
+      "FAIL": 25,
+      "COMPILE_FAIL": 0,
+      "CRASH": 0
+    },
+    "built-ins/Map": {
+      "PASS": 7,
+      "FAIL": 32,
+      "COMPILE_FAIL": 0,
+      "CRASH": 2
+    },
+    "built-ins/Math": {
+      "PASS": 21,
+      "FAIL": 44,
+      "COMPILE_FAIL": 0,
+      "CRASH": 0
+    },
+    "built-ins/Number": {
+      "PASS": 26,
+      "FAIL": 41,
+      "COMPILE_FAIL": 0,
+      "CRASH": 1
+    },
+    "built-ins/Object": {
+      "PASS": 141,
+      "FAIL": 480,
+      "COMPILE_FAIL": 0,
+      "CRASH": 61
+    },
+    "built-ins/Promise": {
+      "PASS": 15,
+      "FAIL": 96,
+      "COMPILE_FAIL": 2,
+      "CRASH": 32
+    },
+    "built-ins/RegExp": {
+      "PASS": 48,
+      "FAIL": 273,
+      "COMPILE_FAIL": 5,
+      "CRASH": 48
+    },
+    "built-ins/Set": {
+      "PASS": 20,
+      "FAIL": 46,
+      "COMPILE_FAIL": 0,
+      "CRASH": 10
+    },
+    "built-ins/String": {
+      "PASS": 49,
+      "FAIL": 194,
+      "COMPILE_FAIL": 0,
+      "CRASH": 1
+    },
+    "built-ins/Symbol": {
+      "PASS": 3,
+      "FAIL": 12,
+      "COMPILE_FAIL": 0,
+      "CRASH": 0
+    },
+    "built-ins/TypedArray": {
+      "PASS": 0,
+      "FAIL": 268,
+      "COMPILE_FAIL": 0,
+      "CRASH": 20
+    },
+    "language/expressions": {
+      "PASS": 488,
+      "FAIL": 1183,
+      "COMPILE_FAIL": 258,
+      "CRASH": 76
+    },
+    "language/statements": {
+      "PASS": 370,
+      "FAIL": 1063,
+      "COMPILE_FAIL": 335,
+      "CRASH": 54
+    }
+  },
+  "topFailPatterns": [
+    {
+      "pattern": "FAIL: assertion mismatch (Test262Error / wrong value)",
+      "count": 2251
+    },
+    {
+      "pattern": "COMPILE_FAIL: jsbin could not compile (unsupported syntax / parser gap)",
+      "count": 601
+    },
+    {
+      "pattern": "FAIL: async ($DONE not signalled / promise rejected)",
+      "count": 535
+    },
+    {
+      "pattern": "FAIL: property-descriptor reflection (verifyProperty: length/name/writable/enumerable/configurable)",
+      "count": 528
+    },
+    {
+      "pattern": "FAIL: negative test wrong outcome (phase=parse)",
+      "count": 429
+    },
+    {
+      "pattern": "CRASH: run signal SIGSEGV",
+      "count": 362
+    },
+    {
+      "pattern": "FAIL: TypedArray/ArrayBuffer semantics",
+      "count": 194
+    },
+    {
+      "pattern": "FAIL: array contents mismatch (compareArray)",
+      "count": 96
+    },
+    {
+      "pattern": "CRASH: run signal SIGBUS",
+      "count": 54
+    },
+    {
+      "pattern": "FAIL: constructor-ness reflection (isConstructor / not-a-constructor)",
+      "count": 50
+    },
+    {
+      "pattern": "CRASH: run timeout",
+      "count": 42
+    },
+    {
+      "pattern": "FAIL: negative test wrong outcome (phase=runtime)",
+      "count": 2
+    }
+  ]
+}
