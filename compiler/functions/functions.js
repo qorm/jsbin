@@ -609,6 +609,18 @@ export const FunctionCompiler = {
         vm.mov(VReg.RET, VReg.S3);
     },
 
+    // [单次求值] 把接收者求值一次存合成槽,返回读槽的 Identifier AST。tag 派发各分支
+    // (含调用点闭包捕获的 obj)共用此标识符后,副作用接收者(如 `ta.copyWithin(0,1).join()`
+    // 的 copyWithin 调用)只执行一次——此前各分支重复求值,变异方法被执行两次
+    // (copyWithin 二次拷贝、reverse 反转回滚)结果错误。
+    _evalOnceToIdent(obj) {
+        const name = `__once_${this.ctx.newLabel("r")}`;
+        const off = this.ctx.allocLocal(name);
+        this.compileExpression(obj);
+        this.vm.store(VReg.FP, off, VReg.RET);
+        return { type: "Identifier", name };
+    },
+
     // 运行时按对象头类型字节分派内建 vs 用户方法。
     // 同名同 arity 的集合内建（Map.get/set/has/delete、Set.add）无法与同名用户方法静态区分，
     // 运行时判 obj 头 [0]&0xff==typeByte：命中走 compileBuiltin()，否则走通用用户方法调用。
@@ -625,8 +637,16 @@ export const FunctionCompiler = {
             if (builtins[i].typedArray) {
                 // TypedArray 族头字节是范围 0x40-0x61(各元素类型),用 >= 0x40 判别
                 // (其余内建类型字节 1/2/4/5/6/7/11 皆 < 0x40,无歧义)。放末位,精确匹配优先。
+                // 但**字符串(0x7FFC)的内容首字节('A'=0x41 等)会冒充 TA 类型字节**——
+                // 先验 tag,字符串不匹配 TA 分支(落后续分支/用户路径)。
+                const notTaL = this.ctx.newLabel("tagd_nota" + i);
+                this.vm.load(VReg.V1, VReg.SP, 0);
+                this.vm.shrImm(VReg.V1, VReg.V1, 48);
+                this.vm.cmpImm(VReg.V1, 0x7FFC);
+                this.vm.jeq(notTaL);
                 this.vm.cmpImm(VReg.V0, 0x40);
                 this.vm.jge(bLbls[i]);
+                this.vm.label(notTaL);
             } else {
                 this.vm.cmpImm(VReg.V0, builtins[i].type);
                 this.vm.jeq(bLbls[i]);
@@ -4244,13 +4264,28 @@ export const FunctionCompiler = {
                     !(obj.type === "Identifier" && this.ctx.getFunction &&
                       this.ctx.getFunction(obj.name))) {
                     const jArrLbl = this.ctx.newLabel("join_arr");
+                    const jTaLbl = this.ctx.newLabel("join_ta");
+                    const jUserLbl = this.ctx.newLabel("join_user");
                     const jEndLbl = this.ctx.newLabel("join_end");
-                    this.compileExpression(obj);
+                    const objOnce = this._evalOnceToIdent(obj); // 接收者单次求值
+                    this.compileExpression(objOnce);
                     this.vm.push(VReg.RET);            // 存 obj(用户方法路径要用)
                     this.vm.shrImm(VReg.V0, VReg.RET, 48);
                     this.vm.cmpImm(VReg.V0, 0x7FFE);
                     this.vm.jeq(jArrLbl);
-                    // 非数组 → 用户方法(x64: V0==RET 已毁,从栈顶重载;同 push 派发器)
+                    // TypedArray(**裸指针** high16==0 才判头字节 0x40-0x61;0x7FFC 字符串的
+                    // 内容首字节('A'=0x41 等)会冒充 TA 类型字节,必须先验 tag)→ _ta_join
+                    this.vm.load(VReg.V0, VReg.SP, 0);
+                    this.vm.shrImm(VReg.V1, VReg.V0, 48);
+                    this.vm.cmpImm(VReg.V1, 0);
+                    this.vm.jne(jUserLbl);
+                    this.vm.movImm64(VReg.V1, 0x0000FFFFFFFFFFFFn);
+                    this.vm.and(VReg.V0, VReg.V0, VReg.V1);
+                    this.vm.loadByte(VReg.V0, VReg.V0, 0);
+                    this.vm.cmpImm(VReg.V0, 0x40);
+                    this.vm.jge(jTaLbl);
+                    this.vm.label(jUserLbl);
+                    // 非数组：用户方法(x64: V0==RET 已毁,从栈顶重载;同 push 派发器)
                     const jLbl = this.asm.addString("join");
                     if (this.vm.backend.name === "x64") {
                         this.vm.load(VReg.A0, VReg.SP, 0);
@@ -4267,9 +4302,13 @@ export const FunctionCompiler = {
                     this.vm.pop(VReg.V5);
                     this.compileMethodCall(VReg.V6, VReg.V5, expr.arguments);
                     this.vm.jmp(jEndLbl);
+                    this.vm.label(jTaLbl);
+                    this.vm.pop(VReg.V0); // 丢弃(compileTypedArrayMethod 重新求值 obj)
+                    this.compileTypedArrayMethod(objOnce, "join", expr.arguments);
+                    this.vm.jmp(jEndLbl);
                     this.vm.label(jArrLbl);
                     this.vm.pop(VReg.V0); // 丢弃(compileArrayMethod 重新求值 obj)
-                    this.compileArrayMethod(obj, "join", expr.arguments);
+                    this.compileArrayMethod(objOnce, "join", expr.arguments);
                     this.vm.label(jEndLbl);
                     return;
                 }
@@ -4291,9 +4330,16 @@ export const FunctionCompiler = {
                         // 运行时处理 typed 布局);否则(同名用户对象方法)→ 通用方法查找。
                         // 此前仅判装箱 tag 0x7FFE(纯数组),闭包内捕获的 typed array 落用户方法
                         // 路径查 miss → 崩(nested-closure typed forEach/map/filter 段错误根因)。
-                        this.emitTagDispatchMethod(obj, prop, expr.arguments, [
-                            { type: 1, compile: () => this.compileArrayMethod(obj, prop.name, expr.arguments) },
-                            { typedArray: true, compile: () => this.compileArrayMethod(obj, prop.name, expr.arguments) },
+                        const objOnce = this._evalOnceToIdent(obj); // 接收者单次求值
+                        this.emitTagDispatchMethod(objOnce, prop, expr.arguments, [
+                            { type: 1, compile: () => this.compileArrayMethod(objOnce, prop.name, expr.arguments) },
+                            // TypedArray:先试 TA 专用实现(_ta_fill/slice/join/...),
+                            // 未覆盖者(map/filter/reduce 等)回退 typed-aware 数组实现。
+                            { typedArray: true, compile: () => {
+                                if (!this.compileTypedArrayMethod(objOnce, prop.name, expr.arguments)) {
+                                    this.compileArrayMethod(objOnce, prop.name, expr.arguments);
+                                }
+                            } },
                         ]);
                         return;
                     }
@@ -4317,8 +4363,11 @@ export const FunctionCompiler = {
                     const routeObj = prop.name === "slice";
                     const arrLbl = this.ctx.newLabel("ambig_arr");
                     const objLbl = this.ctx.newLabel("ambig_obj");
+                    const taLbl = this.ctx.newLabel("ambig_ta");
+                    const taStrLbl = this.ctx.newLabel("ambig_tastr");
                     const endLbl = this.ctx.newLabel("ambig_end");
-                    this.compileExpression(obj);           // RET = 接收者（仅判 tag）
+                    const objOnce = this._evalOnceToIdent(obj); // 接收者单次求值
+                    this.compileExpression(objOnce);           // RET = 接收者（仅判 tag）
                     this.vm.shrImm(VReg.V0, VReg.RET, 48);
                     this.vm.cmpImm(VReg.V0, 0x7FFE);       // 数组 tag
                     this.vm.jeq(arrLbl);
@@ -4326,20 +4375,41 @@ export const FunctionCompiler = {
                         this.vm.cmpImm(VReg.V0, 0x7FFD);   // 对象 tag → 用户方法
                         this.vm.jeq(objLbl);
                     }
+                    // TypedArray(**裸指针** high16==0 才判头字节 0x40-0x61;0x7FFC 字符串的
+                    // 内容首字节会冒充 TA 类型字节)→ TA 方法(slice/at/indexOf/includes),
+                    // 未覆盖者(lastIndexOf/concat)回退 typed-aware 数组实现;否则维持字符串路由。
+                    this.compileExpression(objOnce);
+                    this.vm.push(VReg.RET);
+                    this.vm.shrImm(VReg.V1, VReg.RET, 48);
+                    this.vm.cmpImm(VReg.V1, 0);
+                    this.vm.jne(taStrLbl);
+                    this.vm.movImm64(VReg.V1, 0x0000FFFFFFFFFFFFn);
+                    this.vm.and(VReg.V0, VReg.RET, VReg.V1);
+                    this.vm.loadByte(VReg.V0, VReg.V0, 0);
+                    this.vm.cmpImm(VReg.V0, 0x40);
+                    this.vm.jge(taLbl);
+                    this.vm.label(taStrLbl);
+                    this.vm.pop(VReg.V0);
                     // 非数组：按字符串方法处理
-                    if (!this.compileStringMethod(obj, prop.name, expr.arguments)) {
-                        this.compileArrayMethod(obj, prop.name, expr.arguments);
+                    if (!this.compileStringMethod(objOnce, prop.name, expr.arguments)) {
+                        this.compileArrayMethod(objOnce, prop.name, expr.arguments);
+                    }
+                    this.vm.jmp(endLbl);
+                    this.vm.label(taLbl);
+                    this.vm.pop(VReg.V0);
+                    if (!this.compileTypedArrayMethod(objOnce, prop.name, expr.arguments)) {
+                        this.compileArrayMethod(objOnce, prop.name, expr.arguments);
                     }
                     this.vm.jmp(endLbl);
                     this.vm.label(arrLbl);
-                    this.compileArrayMethod(obj, prop.name, expr.arguments);
+                    this.compileArrayMethod(objOnce, prop.name, expr.arguments);
                     if (routeObj) {
                         this.vm.jmp(endLbl);
                         // 通用对象方法调用：_object_get 取方法 → _maybe_getter → 调用。
                         this.vm.label(objLbl);
                         const pn = this.getMemberPropertyName ? this.getMemberPropertyName(prop) : (prop.name || prop.value);
                         const pLbl = this.asm.addString(pn);
-                        this.compileExpression(obj);
+                        this.compileExpression(objOnce);
                         this.vm.push(VReg.RET);            // this
                         this.vm.load(VReg.A0, VReg.SP, 0);
                         this.vm.lea(VReg.A1, pLbl);
@@ -4416,12 +4486,24 @@ export const FunctionCompiler = {
                 // 对象头类型字节（TYPE_MAP=4）**：是 Map 走 _map_xxx，否则走用户方法。
                 // （对象头 [0]&0xff：Map=4，普通对象=2。）
                 const nArgs = expr.arguments.length;
+                // TypedArray 独有方法(subarray;set 的 1 参形态——2 参形态走下方 Map 歧义
+                // 点的 typedArray 分支):运行时 TA 头字节判别,否则维持用户方法路径。
+                if ((prop.name === "subarray" || (prop.name === "set" && nArgs === 1)) && !callee.computed) {
+                    const objOnce = this._evalOnceToIdent(obj); // 接收者单次求值
+                    this.emitTagDispatchMethod(objOnce, prop, expr.arguments, [
+                        { typedArray: true, compile: () => this.compileTypedArrayMethod(objOnce, prop.name, expr.arguments) },
+                    ]);
+                    return;
+                }
                 // get/set 是 Map 独有（TYPE_MAP=4）；has/delete 为 Map+Set 共有
                 // （_map_has/_map_delete 按 entry[0] 比较，对 Set 同构布局也成立），故收 [4,5]。
                 if ((prop.name === "get" || prop.name === "set") && !callee.computed &&
                     nArgs === (prop.name === "set" ? 2 : 1)) {
-                    this.emitTagDispatchMethod(obj, prop, expr.arguments, [
-                        { type: 4, compile: () => this.compileMapMethod(obj, prop.name, expr.arguments) },
+                    const objOnce = this._evalOnceToIdent(obj); // 接收者单次求值
+                    this.emitTagDispatchMethod(objOnce, prop, expr.arguments, [
+                        { type: 4, compile: () => this.compileMapMethod(objOnce, prop.name, expr.arguments) },
+                        // TypedArray.set(src, off):TA 头字节分支(2 参形态)
+                        { typedArray: true, compile: () => this.compileTypedArrayMethod(objOnce, prop.name, expr.arguments) },
                     ]);
                     return;
                 }

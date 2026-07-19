@@ -1646,6 +1646,20 @@ export const ExpressionCompiler = {
             this.vm.movImm(VReg.V0, 0xc105); // CLOSURE_MAGIC
             this.vm.cmp(VReg.V1, VReg.V0);
             this.vm.jne(notClosureL);
+            // [TA/AB 构造器闭包] fnptr==_ta_ctor_tramp → _ta_construct 专用转发
+            // (无实例语义,RET 即蹦床产的 TA/ArrayBuffer 指针;否则走 _fn_construct_call
+            // 会把蹦床返回值丢弃、返回空实例对象)。
+            const notTaCtorL = this.ctx.newLabel("dnew_notta");
+            this.vm.load(VReg.V1, VReg.S1, 8);
+            this.vm.lea(VReg.V0, "_ta_ctor_tramp");
+            this.vm.cmp(VReg.V1, VReg.V0);
+            this.vm.jne(notTaCtorL);
+            this.compileArrayExpressionWithSpread(args);
+            this.vm.mov(VReg.A1, VReg.RET);
+            this.vm.load(VReg.A0, VReg.FP, dnFnValSlot);
+            this.vm.call("_ta_construct");
+            this.vm.jmp(dynNewProxyEndL);
+            this.vm.label(notTaCtorL);
             this.compileArrayExpressionWithSpread(args); // RET = 实参 boxed 数组
             this.vm.mov(VReg.A1, VReg.RET); // 先取 RET(与 A0 同物理寄存器 X0/RAX!)
             this.vm.load(VReg.A0, VReg.FP, dnFnValSlot);

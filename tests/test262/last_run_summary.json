@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-19T13:14:09.061Z",
+  "generated": "2026-07-19T17:55:31.511Z",
   "config": {
     "corpus": "/Users/dmy/work/jsbin/.test262-corpus",
     "target": "macos-arm64",
@@ -44,18 +44,18 @@
   "eligible": 32310,
   "run": 6462,
   "totals": {
-    "PASS": 1318,
-    "FAIL": 4086,
+    "PASS": 1328,
+    "FAIL": 4056,
     "COMPILE_FAIL": 601,
-    "CRASH": 457
+    "CRASH": 477
   },
-  "passRatePct": 20.4,
+  "passRatePct": 20.55,
   "byArea": {
     "built-ins/Array": {
       "PASS": 121,
-      "FAIL": 321,
+      "FAIL": 336,
       "COMPILE_FAIL": 1,
-      "CRASH": 151
+      "CRASH": 136
     },
     "built-ins/Boolean": {
       "PASS": 1,
@@ -89,9 +89,9 @@
     },
     "built-ins/Object": {
       "PASS": 141,
-      "FAIL": 480,
+      "FAIL": 481,
       "COMPILE_FAIL": 0,
-      "CRASH": 61
+      "CRASH": 60
     },
     "built-ins/Promise": {
       "PASS": 15,
@@ -124,10 +124,10 @@
       "CRASH": 0
     },
     "built-ins/TypedArray": {
-      "PASS": 0,
-      "FAIL": 268,
+      "PASS": 10,
+      "FAIL": 221,
       "COMPILE_FAIL": 0,
-      "CRASH": 20
+      "CRASH": 57
     },
     "language/expressions": {
       "PASS": 488,
@@ -137,15 +137,15 @@
     },
     "language/statements": {
       "PASS": 370,
-      "FAIL": 1063,
+      "FAIL": 1064,
       "COMPILE_FAIL": 335,
-      "CRASH": 54
+      "CRASH": 53
     }
   },
   "topFailPatterns": [
     {
       "pattern": "FAIL: assertion mismatch (Test262Error / wrong value)",
-      "count": 2252
+      "count": 2262
     },
     {
       "pattern": "COMPILE_FAIL: asm.js could not compile (unsupported syntax / parser gap)",
@@ -165,19 +165,15 @@
     },
     {
       "pattern": "CRASH: run signal SIGSEGV",
-      "count": 360
+      "count": 415
     },
     {
       "pattern": "FAIL: TypedArray/ArrayBuffer semantics",
-      "count": 194
+      "count": 146
     },
     {
       "pattern": "FAIL: array contents mismatch (compareArray)",
-      "count": 96
-    },
-    {
-      "pattern": "CRASH: run signal SIGBUS",
-      "count": 55
+      "count": 104
     },
     {
       "pattern": "FAIL: constructor-ness reflection (isConstructor / not-a-constructor)",
@@ -185,7 +181,11 @@
     },
     {
       "pattern": "CRASH: run timeout",
-      "count": 42
+      "count": 43
+    },
+    {
+      "pattern": "CRASH: run signal SIGBUS",
+      "count": 19
     },
     {
       "pattern": "FAIL: negative test wrong outcome (phase=runtime)",

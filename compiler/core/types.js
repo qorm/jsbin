@@ -291,6 +291,13 @@ export function inferType(node, ctx) {
                         return Type.FLOAT64;
                 }
             }
+            // callee 是普通变量/参数(非已注册函数绑定):产物类型运行时才定
+            // (TA=Int8Array 等构造器闭包经 _ta_construct 产 TA/AB 实例)——给 UNKNOWN 让
+            // 成员调用走运行时 tag 分派;此前一律 OBJECT,TA 实例落通用对象路径方法查无。
+            if (node.callee && node.callee.type === "Identifier" && ctx && ctx.hasFunction &&
+                !ctx.hasFunction(node.callee.name)) {
+                return Type.UNKNOWN;
+            }
             return Type.OBJECT;
 
         case "MemberExpression":

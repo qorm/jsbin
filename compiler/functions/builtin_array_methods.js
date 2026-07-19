@@ -1839,9 +1839,16 @@ export const BuiltinArrayMethodCompiler = {
         this.vm.jmp(loopLabel);
         this.vm.label(endLabel);
 
-        // 返回新数组
+        // 返回新数组:普通数组装箱 0x7FFE(for-of tag 检测,同 filter);TypedArray 结果保持
+        // 裸指针(TA 以裸指针流通,打印/下标按头字节识别——误装 0x7FFE 会让 _print_array
+        // 把 buffer@24 当 data_ptr 解引 → 段错误;与 filter 末段 TA 处理对齐)。
         this.vm.load(VReg.RET, VReg.FP, newArrOffset);
+        this.vm.load(VReg.V1, VReg.FP, typeOffset);
+        this.vm.cmpImm(VReg.V1, 0x40);
+        const mapBoxDone = this.ctx.newLabel("map_box_done");
+        this.vm.jge(mapBoxDone);
         this.vm.call("_box_arr_r"); // box->helper
+        this.vm.label(mapBoxDone);
     },
 
     // 编译 arr.flatMap(callback) —— map 后把返回的数组展平一层。

@@ -43,6 +43,16 @@ const ArefMethodRef = {
     },
 };
 
+// [构造器全局值] TypedArray 族 + ArrayBuffer 标识符 → 闭包 type 码(0x70 = ArrayBuffer 伪类型)。
+// 编译期物化为 24B 闭包(magic/fnptr=_ta_ctor_tramp/type@16),`new TA(...)` 值路径与
+// `.prototype` 静态读由此驱动(test262 TA include 依赖 ArrayBuffer.prototype 特性探测)。
+const TA_CTOR_TAGS = {
+    Int8Array: 0x40, Int16Array: 0x41, Int32Array: 0x42, BigInt64Array: 0x43,
+    Uint8Array: 0x50, Uint16Array: 0x51, Uint32Array: 0x52, BigUint64Array: 0x53,
+    Uint8ClampedArray: 0x54, Float32Array: 0x60, Float64Array: 0x61,
+    ArrayBuffer: 0x70,
+};
+
 // [内建静态一等值] 命名空间静态方法作**值读取**(非调用)时包成闭包(emitBuiltinFnClosure
 // 直连 helper,无接收者绑定)并按 builtin memoize(emitMemoizedBuiltinRef)。调用仍走
 // compileCallExpression 的静态派发(compileMathMethod 等),不经此表 → 调用字节不变。
@@ -234,6 +244,38 @@ export const MemberCompiler = {
         this.vm.call("_js_box_function");
     },
 
+    // [构造器全局值] TA 族/ArrayBuffer 构造器闭包(memoized,_taref_<name>):
+    // 24B {magic@0, fnptr@8=_ta_ctor_tramp, type@16}。memoize 保证 `Int8Array === Int8Array`
+    // 且每构造器仅建一次。type@16 由蹦床读取(见 runtime generateCtorSupport)。
+    emitCtorClosureRef(slotKey, typeTag) {
+        const label = "_taref_" + slotKey;
+        if (!this._addedTaRefLabels) this._addedTaRefLabels = new Set();
+        if (!this._addedTaRefLabels.has(label)) {
+            this.asm.addDataLabel(label);
+            this.asm.addDataQword(0);
+            this._addedTaRefLabels.add(label);
+        }
+        const doneL = this.ctx.newLabel("taref_done");
+        this.vm.lea(VReg.V0, label);
+        this.vm.load(VReg.RET, VReg.V0, 0);
+        this.vm.cmpImm(VReg.RET, 0);
+        this.vm.jne(doneL);
+        this.vm.movImm(VReg.A0, 24);
+        this.vm.call("_alloc");
+        this.vm.mov(VReg.S0, VReg.RET);
+        this.vm.movImm(VReg.V1, 0xc105); // CLOSURE_MAGIC
+        this.vm.store(VReg.S0, 0, VReg.V1);
+        this.vm.lea(VReg.V1, "_ta_ctor_tramp");
+        this.vm.store(VReg.S0, 8, VReg.V1);
+        this.vm.movImm(VReg.V1, typeTag);
+        this.vm.store(VReg.S0, 16, VReg.V1);
+        this.vm.mov(VReg.A0, VReg.S0);
+        this.vm.call("_js_box_function");
+        this.vm.lea(VReg.V0, label);
+        this.vm.store(VReg.V0, 0, VReg.RET);
+        this.vm.label(doneL);
+    },
+
     // [Stage A] 内置方法引用闭包:{magic@0=0xc105, fnptr@8=_aref_generic, helper@16=<helper 标签>}。
     // 供 `const f=arr.push`/`typeof [].map`/`arr.map.call(recv,cb)` 等把内置方法当一等值。
     // 蹦床 _aref_generic 从 @16 取 helper、把接收者(this,A5)插到 A0 后尾调,故不绑定接收者。
@@ -388,6 +430,15 @@ export const MemberCompiler = {
         if (name === "JSON") {
             this.vm.call("_object_new");
             this.vm.call("_box_obj_r"); // box->helper
+            return;
+        }
+        // [构造器全局值] TypedArray 族/ArrayBuffer → 24B 闭包(memoized),`new TA(...)`
+        // 值路径(经 _ta_construct→_ta_ctor_tramp)与 typeof X === "function" 由此成立。
+        // 直接 `new Int8Array(...)` 仍走 compileNewExpression 静态特判(字节不变);遮蔽守卫同 Function。
+        if (TA_CTOR_TAGS[name] !== undefined &&
+            !(this.ctx.getLocal && this.ctx.getLocal(name)) &&
+            !(this.ctx.getFunction && this.ctx.getFunction(name))) {
+            this.emitCtorClosureRef(name, TA_CTOR_TAGS[name]);
             return;
         }
 
@@ -890,6 +941,17 @@ export const MemberCompiler = {
                 this.vm.movImm64(VReg.V1, 0x7ffc000000000000n);
                 this.vm.or(VReg.A1, VReg.A1, VReg.V1);
                 this.vm.call("_symbol_wellknown");
+                return;
+            }
+
+            // [构造器 .prototype] X.prototype(X∈TA 族/ArrayBuffer)→ _get_ctor_proto 单例对象。
+            // ArrayBuffer.prototype 为空对象:test262 TA include 的 resize/transferToImmutable
+            // 特性探测安全返 undefined(此前 undefined.resize 抛异常 → TA 区 288 项全灭)。
+            if (propName === "prototype" && expr.object.type === "Identifier" &&
+                TA_CTOR_TAGS[expr.object.name] !== undefined &&
+                !(this.ctx.getLocal && this.ctx.getLocal(expr.object.name))) {
+                this.vm.movImm(VReg.A0, TA_CTOR_TAGS[expr.object.name]);
+                this.vm.call("_get_ctor_proto");
                 return;
             }
 
