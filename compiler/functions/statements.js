@@ -324,6 +324,15 @@ export const StatementCompiler = {
                 // boxedVar，让初始化箭头捕获同一 box，编完再把闭包写回 box，体内自引用即得闭包本身。
                 // 缺此：箭头捕获的是编译期空槽(值0)→ 体内 rec() 调 0 → 崩/空。命名函数声明有此逻辑，
                 // 但 const=arrow 走本路径原先没有 → 递归箭头全崩（gen0/gen1 皆然）。
+                // [支柱②] 去虚拟化局部 new 跟踪:`v = new X()` 记类名(X 须已注册);其它初始化清除。
+                if (!this.ctx.devirtVarTypes) this.ctx.devirtVarTypes = {};
+                if (decl.init && decl.init.type === "NewExpression" && decl.init.callee &&
+                    decl.init.callee.type === "Identifier" && this._devirtClasses &&
+                    this._devirtClasses[decl.init.callee.name]) {
+                    this.ctx.devirtVarTypes[name] = decl.init.callee.name;
+                } else {
+                    delete this.ctx.devirtVarTypes[name];
+                }
                 const _initE = decl.init;
                 const isRecursiveInit = _initE &&
                     (_initE.type === "ArrowFunctionExpression" || _initE.type === "FunctionExpression") &&
@@ -2419,6 +2428,34 @@ export const StatementCompiler = {
                     privateFields.push(member);
                 } else {
                     instanceFields.push(member);
+                }
+            }
+        }
+
+        // [支柱②] 发射期回填:把本类 labelId 与方法标签并入预登记表(_devirtPrepass 已建
+        // 条目;嵌套/局部类预登记未覆盖,此处新建)。跨模块同名投毒类拒去虚拟化。
+        if (!this._devirtClasses) this._devirtClasses = {};
+        {
+            let dv = this._devirtClasses[className];
+            if (!dv) {
+                dv = { labelId: null, superName: null, methods: {}, fieldTypes: {}, subClasses: [] };
+                this._devirtClasses[className] = dv;
+            }
+            if (!(this._devirtPoisoned && this._devirtPoisoned[className])) {
+                dv.labelId = labelId;
+                if (!dv.superName && superClass && superClass.type === "Identifier") {
+                    dv.superName = superClass.name;
+                }
+                for (const m of instanceMethods) {
+                    if (m.computed || !m.key || m.key.type === "PrivateIdentifier") continue;
+                    if (m.kind && m.kind !== "method") continue;
+                    const mn = m.key.name || m.key.value;
+                    if (!mn || mn === "constructor") continue;
+                    dv.methods[mn] = `_class_${className}_${mn}_${labelId}`;
+                }
+                if (dv.superName && this._devirtClasses[dv.superName]) {
+                    const sc = this._devirtClasses[dv.superName].subClasses;
+                    if (!sc.includes(className)) sc.push(className);
                 }
             }
         }

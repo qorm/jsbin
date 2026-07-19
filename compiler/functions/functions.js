@@ -548,6 +548,88 @@ export const FunctionCompiler = {
         vm.callIndirect(VReg.S1);
     },
 
+    // [支柱②] 去虚拟化:推断接收者类名(this→当前类;成员链逐段查字段类型表;
+    // 局部 v=new X()→跟踪表),推不出返回 null(落通用路径)。
+    // _initAssembler/VM-backend 分支形态:this.asm 与 vm.backend 的类由本编译 target
+    // 唯一确定(每次编译单形态)→ 按 arch 特判。
+    _devirtReceiverClass(obj) {
+        if (!this._devirtClasses) return null;
+        if (obj.type === "ThisExpression") {
+            return this.ctx.inClass ? this.ctx.className : null;
+        }
+        if (obj.type === "Identifier") {
+            const vt = this.ctx.devirtVarTypes;
+            return vt && vt[obj.name] ? vt[obj.name] : null;
+        }
+        if (obj.type === "MemberExpression" && !obj.computed && obj.property &&
+            obj.property.type === "Identifier") {
+            const ownerClass = this._devirtReceiverClass(obj.object);
+            if (!ownerClass) return null;
+            const fname = obj.property.name;
+            // arch 特判:_initAssembler/VM._createBackend 分支形态——Compiler.asm 与
+            // VirtualMachine.backend 的类由本编译 target 唯一确定(每次编译单形态)。
+            if (ownerClass === "Compiler" && fname === "asm" && this.arch) {
+                return { arm64: "ARM64Assembler", x64: "X64Assembler", wasm32: "Wasm32Assembler" }[this.arch] || null;
+            }
+            if (ownerClass === "VirtualMachine" && fname === "backend" && this.arch) {
+                return { arm64: "ARM64Backend", x64: "X64Backend", wasm32: "WasmBackend" }[this.arch] || null;
+            }
+            const dv = this._devirtClasses[ownerClass];
+            return dv && dv.fieldTypes[fname] ? dv.fieldTypes[fname] : null;
+        }
+        return null;
+    },
+
+    // 沿继承链解析实例方法(最派生优先,深度上限 20);返回方法标签或 null。
+    _devirtResolve(className, methodName) {
+        let cur = className;
+        let depth = 0;
+        while (cur && depth < 20) {
+            const dv = this._devirtClasses[cur];
+            if (!dv) return null;
+            if (dv.methods[methodName]) return dv.methods[methodName];
+            cur = dv.superName;
+            depth = depth + 1;
+        }
+        return null;
+    },
+
+    // 推断类的已注册子类(递归)若覆写同名方法则 true——接收者可能是子类实例,
+    // 直编基类标签会错调,拒去虚拟化。
+    _devirtSubclassOverrides(className, methodName) {
+        const dv = this._devirtClasses[className];
+        if (!dv) return true;
+        for (let i = 0; i < dv.subClasses.length; i++) {
+            const sdv = this._devirtClasses[dv.subClasses[i]];
+            // 预登记表方法值为 null(标签发射期才补)——须按键存在性判定,不能用真值
+            if (sdv && sdv.methods[methodName] !== undefined) return true;
+            if (sdv && this._devirtSubclassOverrides(dv.subClasses[i], methodName)) return true;
+        }
+        return false;
+    },
+
+    // 去虚拟化调用:接收者只求值一次入槽;args 按方法约定(A0-A4 参、A5=this、S0=0 普通函数,
+    // 与 compileMethodCall 的 notClosure 分支一致)。成功返回 true,调用已发射。
+    // 守卫语义:精确接收者(局部 v=new X()/字段 f=new X(),类即运行类)无需子类守卫;
+    // this 接收者可能是子类实例,须证当前类无已注册覆写子类(预登记全图完备,可证)。
+    _devirtualizeCall(obj, methodName, args) {
+        const cls = this._devirtReceiverClass(obj);
+        if (!cls || (this._devirtPoisoned && this._devirtPoisoned[cls])) return false;
+        // 实例属性遮蔽:该方法名曾被函数值赋给实例属性 → 实例值可能遮蔽原型方法,拒去虚拟化
+        if (this._devirtShadowed && this._devirtShadowed[methodName]) return false;
+        if (obj.type === "ThisExpression" && this._devirtSubclassOverrides(cls, methodName)) return false;
+        const label = this._devirtResolve(cls, methodName);
+        if (!label) return false;
+        const thisSlot = this.ctx.allocLocal(`__dv_this_${this.nextLabelId()}`);
+        this.compileExpression(obj);
+        this.vm.store(VReg.FP, thisSlot, VReg.RET);
+        this.compileCallArguments(args);
+        this.vm.load(VReg.A5, VReg.FP, thisSlot);
+        this.vm.movImm(VReg.S0, 0);
+        this.vm.call(label);
+        return true;
+    },
+
     // 编译 async 闭包调用
     // S0 = async 闭包对象
     // 参数已在 A0-A5 寄存器中
@@ -2361,6 +2443,15 @@ export const FunctionCompiler = {
         if (callee.type === "MemberExpression") {
             const obj = callee.object;
             const prop = callee.property;
+
+            // [支柱② 去虚拟化] 接收者类静态可推(this/字段类型表/局部 new 跟踪)时,
+            // 方法调用直编为 direct call——消掉 _object_get 全帧查找(六寄存器 prologue +
+            // 防御族 + 自有属性全扫 + 原型链递归)+ validate + callIndirect,自编译主瓶颈。
+            // 解析失败一律落既有通用路径(字节不变)。
+            if (!callee.computed && prop && prop.type === "Identifier" &&
+                this._devirtualizeCall(obj, prop.name, expr.arguments)) {
+                return;
+            }
 
             // [#57 B1] Math.<m>.call/apply:内建 Math 方法非一等闭包,直接把接收者
             // 展开为等价的 Math.<m>(...) 编译。

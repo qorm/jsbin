@@ -1240,6 +1240,9 @@ export class Compiler {
 
     compile(source) {
         const ast = this.parse(source);
+        // [支柱②] 去虚拟化全图预登记:任何代码发射前,沿 import 图只解析(不发射)登记
+        // 全部类——注册表完备,"子类覆写守卫"可证(this.m() 仅在类无已注册子类时去虚拟化)。
+        this._devirtPrepass(ast, this.sourcePath || path.resolve("."));
 
         if (this.outputType === "shared" || this.outputType === "static") {
             this.generateSharedLibraryRuntime();
@@ -1256,6 +1259,122 @@ export class Compiler {
 
         return this.generateExecutable();
     }
+
+    // [支柱②] 沿 import 图只解析不发射,登记全部类声明(_devirtRegisterClass)。
+    // 同名类跨模块冲突一律投毒弃表(防跨模块同名类方法错配,v1.5.47 标签冲突同族风险)。
+    _devirtPrepass(mainAst, mainPath) {
+        if (!this._devirtClasses) this._devirtClasses = {};
+        if (!this._devirtPoisoned) this._devirtPoisoned = {};
+        const seen = new Set();
+        const visit = (ast, filePath) => {
+            if (!ast || !ast.body) return;
+            for (const stmt of ast.body) {
+                if (stmt.type === "ClassDeclaration" && stmt.id && stmt.id.name) {
+                    this._devirtRegisterClass(stmt, filePath);
+                } else if ((stmt.type === "ImportDeclaration" ||
+                            (stmt.type === "ExportNamedDeclaration" && stmt.source) ||
+                            (stmt.type === "ExportAllDeclaration" && stmt.source)) && stmt.source) {
+                    const spec = stmt.source.value;
+                    if (!spec) continue;
+                    const resolved = resolveModulePath(spec, path.dirname(filePath), this.nodeShimPath, path, fs);
+                    if (resolved && !seen.has(resolved)) {
+                        seen.add(resolved);
+                        try {
+                            const mAst = this.parse(this.readModuleSource(resolved));
+                            this._devirtScanShadows(mAst);
+                            visit(mAst, resolved);
+                        } catch (e) { /* 模块读取/解析失败由编译主路径报告 */ }
+                    }
+                }
+            }
+        };
+        seen.add(mainPath);
+        visit(mainAst, mainPath);
+        // 全图实例属性遮蔽扫描(与登记共用同一批已解析 AST 之前按模块各自扫)
+        this._devirtScanShadows(mainAst);
+    }
+
+    // 全图扫描实例属性遮蔽:任何 `<o>.X = <函数值>` 赋值把 X 记入全局遮蔽集——实例自有
+    // 属性优先于原型方法,此类方法名一律拒去虚拟化(防把原型方法标签错当实例覆写值,
+    // stream 的 this._read = options.read / r._read = fn 形态)。
+    _devirtScanShadows(node) {
+        if (!node || typeof node !== "object") return;
+        if (Array.isArray(node)) {
+            for (let i = 0; i < node.length; i++) this._devirtScanShadows(node[i]);
+            return;
+        }
+        if (node.type === "AssignmentExpression" && node.left &&
+            node.left.type === "MemberExpression" && !node.left.computed &&
+            node.left.property && node.left.property.type === "Identifier" &&
+            node.right && (node.right.type === "FunctionExpression" ||
+                           node.right.type === "ArrowFunctionExpression" ||
+                           node.right.type === "Identifier" ||
+                           node.right.type === "MemberExpression")) {
+            // RHS 为 函数/标识符/成员读 → 可能是函数值(this._read = options.read 形态);
+            // 字面量/对象/数组/new/调用结果视为数据值,不遮蔽(保住 this.count=0 等)
+            if (!this._devirtShadowed) this._devirtShadowed = {};
+            this._devirtShadowed[node.left.property.name] = true;
+        }
+        for (const k in node) {
+            const v = node[k];
+            if (v && typeof v === "object") this._devirtScanShadows(v);
+        }
+    }
+
+    // 登记单个类:方法名(发射期补标签)、父类/子类链、构造器与方法体内的 this.f = new X()
+    // 字段类型(同类多次不同类赋值 → 弃字段条目,防分支多形态误判)。
+    _devirtRegisterClass(stmt, filePath) {
+        const className = stmt.id.name;
+        const existing = this._devirtClasses[className];
+        if (existing && existing.__file !== filePath) {
+            // 跨模块同名类:投毒,拒登记(发射期见此名同样拒)
+            this._devirtPoisoned[className] = true;
+            delete this._devirtClasses[className];
+            return;
+        }
+        if (this._devirtPoisoned[className]) return;
+        const dv = existing || { labelId: null, superName: null, methods: {}, fieldTypes: {}, subClasses: [] };
+        dv.__file = filePath;
+        dv.superName = (stmt.superClass && stmt.superClass.type === "Identifier") ? stmt.superClass.name : null;
+        const scanThisNew = (stmts) => {
+            if (!stmts) return;
+            for (const st of stmts) {
+                const e = st && st.expression;
+                if (e && e.type === "AssignmentExpression" && e.operator === "=" &&
+                    e.left && e.left.type === "MemberExpression" && !e.left.computed &&
+                    e.left.object && e.left.object.type === "ThisExpression" &&
+                    e.left.property && e.left.property.type === "Identifier" &&
+                    e.right && e.right.type === "NewExpression" &&
+                    e.right.callee && e.right.callee.type === "Identifier") {
+                    const f = e.left.property.name;
+                    const c = e.right.callee.name;
+                    if (dv.fieldTypes[f] && dv.fieldTypes[f] !== c) {
+                        delete dv.fieldTypes[f]; // 分支多形态(如 _initAssembler)→ 弃条目
+                    } else if (!dv.fieldTypes[f]) {
+                        dv.fieldTypes[f] = c;
+                    }
+                }
+            }
+        };
+        for (const m of stmt.body) {
+            if (m.type === "MethodDefinition") {
+                if (!m.computed && m.key && m.key.type !== "PrivateIdentifier" &&
+                    (!m.kind || m.kind === "method")) {
+                    const mn = m.key.name || m.key.value;
+                    if (mn && mn !== "constructor" && dv.methods[mn] === undefined) {
+                        dv.methods[mn] = null; // 标签发射期补
+                    }
+                }
+                if (m.value && m.value.body) scanThisNew(m.value.body.body);
+            }
+        }
+        this._devirtClasses[className] = dv;
+        if (dv.superName && this._devirtClasses[dv.superName]) {
+            const sc = this._devirtClasses[dv.superName].subClasses;
+            if (!sc.includes(className)) sc.push(className);
+        }
+    }
+
 
     // [#15 JSON shim 注入] 模块源码引用 JSON.stringify/parse 时,前置合成 import
     // (裸名 "__json_shim" 经 cwd/runtime/node/ 解析);调用点由

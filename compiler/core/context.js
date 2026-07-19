@@ -301,6 +301,9 @@ export class CompileContext {
         newCtx.superClassExpr = this.superClassExpr;
         newCtx.superInfoLabel = this.superInfoLabel;
         newCtx.inStaticMethod = this.inStaticMethod; // 静态方法内 super.m() 走父类对象(非 prototype)
+        // [支柱②] 去虚拟化局部 new 跟踪(函数作用域):浅拷贝——方法见外层类型,
+        // 方法内自有赋值不回写外层(语义按函数作用域隔离)。
+        newCtx.devirtVarTypes = this.devirtVarTypes ? { ...this.devirtVarTypes } : null;
         return newCtx;
     }
 }
