@@ -3212,7 +3212,7 @@ function resolveModulePath(importSource, sourcePath, nodeShimPath, pathMod, fsMo
     // 不用 statSync().isDirectory()——自举运行时该 shim 恒返 false，会把目录再 dirname 一层
     // （"a/compiler"→"a/"）致相对导入丢一段路径（"a/../lang"），模块读空 → gen2 空壳根因。
     let currentDir = absSourcePath;
-    if (absSourcePath.endsWith(".js") || absSourcePath.endsWith(".mjs")) {
+    if ((absSourcePath.endsWith(".js") || absSourcePath.endsWith(".mjs")) && !pathIsDirectory(fsMod, absSourcePath)) {
         currentDir = pathMod.dirname(absSourcePath);
     }
 
@@ -3231,6 +3231,13 @@ function resolveModulePath(importSource, sourcePath, nodeShimPath, pathMod, fsMo
     // 规范化去掉 ./ 和 ../，否则同一模块经不同 ././变体路径被当不同文件，compiledFiles 去重
     // 失效 → 循环导入无限递归 → 栈溢出崩(139)。自举 path.resolve 不规范化，这里手动折叠。
     return normalizePathSegments(resolvedPath);
+}
+
+// .js/.mjs 结尾的路径一般是文件,但**目录**也可能叫这名(仓库更名 asm.js 后,
+// clone 目录即 "asm.js")。node 下 statSync 实辨;自举运行时该 shim 恒返 false,
+// 调用方退回原后缀启发式(行为与旧版一致)。
+function pathIsDirectory(fsMod, p) {
+    try { return fsMod.statSync(p).isDirectory() === true; } catch (e) { return false; }
 }
 
 // 折叠路径里的 "." 与 ".."（不依赖 pathMod.normalize，其在自举运行时可能不可靠）
@@ -3273,7 +3280,7 @@ function resolvePackageSpecifier(spec, sourcePath, pathMod, fsMod, forRequire) {
 
     // 从 sourcePath 起向上找 node_modules/<pkgName>/package.json
     let dir = pathMod.resolve(sourcePath || ".");
-    if (dir.endsWith(".js") || dir.endsWith(".mjs")) dir = pathMod.dirname(dir);
+    if ((dir.endsWith(".js") || dir.endsWith(".mjs")) && !pathIsDirectory(fsMod, dir)) dir = pathMod.dirname(dir);
     let pkgDir = null;
     while (true) {
         const cand = pathMod.join(dir, "node_modules", pkgName);

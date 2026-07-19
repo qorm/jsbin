@@ -1,7 +1,7 @@
 name: Release
 
 # 打 tag(v* )即自动发布;也可在 Actions 页手动触发(填 tag)。
-# jsbin 是交叉编译器:一台 Linux runner 用 Node 就能产出全部 5 个目标的原生 CLI。
+# asm.js 是交叉编译器:一台 Linux runner 用 Node 就能产出全部 5 个目标的原生 CLI。
 on:
   push:
     tags:
@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag (e.g. v1.0.0)"
+        description: "Release tag (e.g. v0.1)"
         required: true
 
 permissions:
@@ -27,13 +27,13 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Cross-compile jsbin CLI for all 5 targets
+      - name: Cross-compile asm.js CLI for all 5 targets
         run: |
           set -euo pipefail
           mkdir -p dist
           for T in macos-arm64 macos-x64 linux-arm64 linux-x64 windows-x64; do
             echo "::group::build $T"
-            node cli.js cli.js -o "dist/jsbin-$T" --target "$T"
+            node cli.js cli.js -o "dist/asm.js-$T" --target "$T"
             echo "::endgroup::"
           done
           ls -la dist
@@ -44,16 +44,16 @@ jobs:
         continue-on-error: true
         run: |
           set -euo pipefail
-          printf 'console.log("jsbin-ci-ok", 6*7);' > hello.js
-          ./dist/jsbin-linux-x64 hello.js -o hello --target linux-x64
+          printf 'console.log("asm.js-ci-ok", 6*7);' > hello.js
+          ./dist/asm.js-linux-x64 hello.js -o hello --target linux-x64
           out="$(./hello)"
           echo "output: $out"
-          test "$out" = "jsbin-ci-ok 42"
+          test "$out" = "asm.js-ci-ok 42"
 
       - name: Generate checksums
         run: |
           cd dist
-          sha256sum jsbin-* > SHA256SUMS.txt
+          sha256sum asm.js-* > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Resolve release tag
@@ -72,5 +72,5 @@ jobs:
         run: |
           set -euo pipefail
           gh release create "$TAG" dist/* \
-            --title "jsbin $TAG" \
-            --notes "Self-hosting jsbin CLI, cross-compiled from a single host for all five targets (macOS-ARM64, macOS-x64, Linux-ARM64, Linux-x64, Windows-x64). Each binary compiles \`cli.js\` into a native executable — no Node.js and no third-party dependencies at runtime. Verify integrity with \`SHA256SUMS.txt\`. See the README's Self-Hosting section for the \`gen2 == gen3\` fixed-point results."
+            --title "asm.js $TAG" \
+            --notes "Self-hosting asm.js CLI, cross-compiled from a single host for all five targets (macOS-ARM64, macOS-x64, Linux-ARM64, Linux-x64, Windows-x64). Each binary compiles \`cli.js\` into a native executable — no Node.js and no third-party dependencies at runtime. Verify integrity with \`SHA256SUMS.txt\`. See the README's Self-Hosting section for the \`gen2 == gen3\` fixed-point results."
