@@ -157,10 +157,8 @@ export class ARM64Assembler {
     }
 
     emit32(word) {
-        this.code.push(word & 255);
-        this.code.push((word >> 8) & 255);
-        this.code.push((word >> 16) & 255);
-        this.code.push((word >> 24) & 255);
+        // 单次 push 四参追加(1 次调用)代替四次单参 push——自编译 ~1200 万次调用降为 ~300 万。
+        this.code.push(word & 255, (word >> 8) & 255, (word >> 16) & 255, (word >> 24) & 255);
     }
 
     currentOffset() {
@@ -179,7 +177,8 @@ export class ARM64Assembler {
     label(name) {
         // 如果标签以 _ 开头，说明是全局标签，不加前缀
         let fullName = name;
-        if (name.charAt(0) !== "_") {
+        if (name.charAt(0) !== "_" && this.labelPrefix !== "") {
+            // 前缀通常为空:空判前置,避免每标签一次字符串拼接(自编译 ~26 万标签)
             fullName = this.labelPrefix + name;
         }
         this.labels.set(fullName, this.code.length);
