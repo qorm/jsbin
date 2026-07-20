@@ -2672,6 +2672,8 @@ export const StatementCompiler = {
         // [#61 P2] flags_ptr@40 = 0(惰性,全默认 attrs)。alloc 不清零,必须显式写。
         this.vm.movImm(VReg.V0, 0);
         this.vm.store(VReg.S0, 40, VReg.V0);
+        // [A1] shape_ptr@48 = 0(无形状;形状 IC 未启用,占位字段,逐字节等价旧语义)。
+        this.vm.store(VReg.S0, 48, VReg.V0);
 
         // 属性槽 0: __ctor__ -> 构造函数地址
         this.vm.lea(VReg.V0, this.addStringConstant("__ctor__"));

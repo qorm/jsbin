@@ -26,10 +26,11 @@ const TYPE_SYMBOL = 61; // Symbol 标记块，见 runtime/core/allocator.js
 // 属性 attrs 数组(capacity 字节,每属性 1 字节),flags_ptr=0 语义 = 全属性默认
 // attrs(writable+enumerable+configurable 全 1)。普通赋值/对象字面量/类字段/
 // 编译器自身对象全部 flags_ptr=0(不分配 flags 块),逐字节等价 P1 后状态。
-const OBJECT_HEADER_SIZE = 48; // type + count + __proto__ + capacity + props_ptr + flags_ptr
+const OBJECT_HEADER_SIZE = 56; // type + count + __proto__ + capacity + props_ptr + flags_ptr + shape_ptr@48
 const OBJECT_CAP_OFFSET = 24; // capacity 字段偏移
 const OBJECT_PROPS_PTR_OFFSET = 32; // props 数组指针偏移
 const OBJECT_FLAGS_PTR_OFFSET = 40; // per-property attrs 数组指针偏移(0=全默认 attrs)
+const OBJECT_SHAPE_OFFSET = 48; // shape 描述符指针偏移(0=无形状,形状 IC 未启用)
 const PROP_SIZE = 16; // key + value
 
 // per-property attribute 位(flags[i] 对应 props_ptr+i*16)
@@ -268,7 +269,7 @@ export class ObjectGenerator {
         vm.shrImm(VReg.S1, VReg.S1, 4); // /16 -> 初始容量
 
         vm.label("_object_new_do");
-        // 分配对象头（40 字节：type/count/proto/capacity/props_ptr）
+        // 分配对象头（56 字节：type/count/proto/capacity/props_ptr/flags_ptr/shape_ptr）
         vm.movImm(VReg.A0, OBJECT_HEADER_SIZE);
         vm.call("_alloc");
         vm.mov(VReg.S0, VReg.RET);
@@ -290,6 +291,8 @@ export class ObjectGenerator {
         vm.store(VReg.S0, 16, VReg.V0);
         // [#61 P2] flags_ptr@40 = 0(惰性,全默认 attrs)。alloc 不清零,必须显式写。
         vm.store(VReg.S0, OBJECT_FLAGS_PTR_OFFSET, VReg.V0);
+        // [A1] shape_ptr@48 = 0(无形状;形状 IC 未启用,占位字段,逐字节等价旧语义)。
+        vm.store(VReg.S0, OBJECT_SHAPE_OFFSET, VReg.V0);
 
         vm.mov(VReg.RET, VReg.S0);
         vm.epilogue([VReg.S0, VReg.S1], 0);
