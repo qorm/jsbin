@@ -5,20 +5,18 @@
 > 本文档是四个产品方向的总规划:**引擎库化、完整 ES、Node.js 兼容(含包管理)、README 完整化**。
 > 铁律: 任何阶段的任何改动,都必须保持五目标 `gen2 == gen3` 自举定点(见 README Self-Hosting)。
 
-> **状态更新(v1.5.39,2026-07-16)**——本路线图制定后一个 v1.5.x 快速修复季已过,多个规划项已落地,详见 [CHANGELOG.md](../CHANGELOG.md):
-> - **E2/E3(ES)大幅收口**:Proxy/Reflect 基本完整(含 apply/construct 陷阱与不变式)、JSON 全参、属性描述符与 ES 枚举序、async 全形态、迭代协议全站点、RegExp d 标志/内联修饰组、typed arrays 完整、浮点 shortest round-trip(Dragon4)。现状见 [ES_SUPPORT.md](./ES_SUPPORT.md)。
-> - **N1/N2(Node)已落地 AOT 子集**(v1.5.16):CJS `require`、`node_modules`+`package.json` `exports` 解析、ESM↔CJS 互操作;`process.env`(v1.5.25)。N3 near-node 化与 N4 包验证集仍开放。
-> - **L2(引擎库)route B 已打通**:全局 `eval()`/`new Function()` 可在 AOT 程序直用(arm64+x64),见 [../engine/README.md](../engine/README.md);词法作用域捕获、运行时 specifier `import()` 仍开放。
-> - **确定性升级**:`gen1==gen2==gen3` 全链字节一致(v1.5.32);产物 −6.68MB 足迹削减(v1.5.33)。
+> **状态更新(v0.2,2026-07-20)**——本路线图制定于 v1.5.x 时代(2026-07-10),版本号已于 2026-07-19 自 0.1 重新起算(重编号,非回退)。自制定以来多个规划项已落地(详细沿革见 [CHANGELOG.md](../CHANGELOG.md) 的 v0.x 条目与 v1.x 开发档案):
+> - **E2/E3(ES)大幅收口**:Proxy/Reflect 基本完整(含 apply/construct 陷阱与不变式)、JSON 全参、属性描述符与 ES 枚举序、async 全形态、迭代协议全站点、typed arrays 完整(构造器全局值,v0.2)、浮点 shortest round-trip(Dragon4)。现状见 [ES_SUPPORT.md](./ES_SUPPORT.md)。
+> - **N1/N2(Node)已落地 AOT 子集**:CJS `require`、`node_modules`+`package.json` `exports` 解析、ESM↔CJS 互操作、`process.env`;环形 `require()` 已补齐(fixtures 首次全绿,基线 362/362)。N3 near-node 化与 N4 包验证集仍开放。
+> - **L2(引擎库)route B 已打通**:全局 `eval()`/`new Function()` 可在 AOT 程序直用(arm64+x64);**直接 eval 词法作用域捕获已完成**(route B 最后硬里程碑);运行时 specifier `import()` 仍开放。见 [../engine/README.md](../engine/README.md)。
+> - **确定性升级**:`gen1==gen2==gen3` 全链字节一致;产物足迹大幅削减。
 > - **新增方向**:WebAssembly 目标 `wasm32-wasi`([WASM_DESIGN.md](./WASM_DESIGN.md));并发 Stage-0 `js f(x)` spawn + Channel 方言与 G-M-P 设计([PARALLEL_DESIGN.md](./PARALLEL_DESIGN.md)),对应方向五 C2 的起步。
 > - 下方正文保留 2026-07-10 制定时点的表述,阶段表中已完成项以上述为准。
 
-> **状态更新(v1.5.52,2026-07-19)**——自上注(v1.5.39)后又过 13 个版本,要点如下;事实来源为 [CHANGELOG.md](../CHANGELOG.md) v1.5.40–v1.5.52 各条目与 `tests/test262/last_run_summary.json`:
-> - **并发(方向五 C2)推进到 G-M-P N>2**:共享堆 G-M-P 路线(见 §4.5 补注)已从设计研究执行到真多核——v1.5.46 双 M 工作窃取调度(GOMAXPROCS=2)→ v1.5.48 per-P 无锁分配(M4)+ STW 安全点(M5)→ v1.5.50 真多 M stop-the-world GC 周期 → v1.5.52 泛化到 N>2(**GOMAXPROCS=3 真 3 线程窃取 + N 路 STW GC**,linux-arm64 Docker 验证)。`GOMAXPROCS=1` 保持字节一致自举定点;跨 M channel 唤醒、非 M0 协调者、x64 段寄存器 TLS 为已知余项。
-> - **E4 test262 落地首个基线**:真实 conformance harness(`tests/test262/run.mjs`,含 frontmatter/includes/negative 机制)v1.5.51 上线;首基线 **20.4%**(2026-07-17,stride-5 抽样运行 6462 例 / PASS 1318,覆盖 language 与 15 个 built-ins 目录)。距 M4 的 ≥80% 目标尚远,作为 M4 进行中的量化锚点。
-> - **直接 eval 词法作用域捕获已完成**(v1.5.42):函数内直接 `eval(str)` 可读写调用者局部变量,为 route B 引擎最后硬里程碑——上注(v1.5.39)中"词法作用域捕获…仍开放"的表述自此失效;间接 eval(`(0,eval)` 等)保持全局作用域。
-> - **Node crypto 已到 AES-GCM/SHA-512/HKDF**(v1.5.51;此前 v1.5.42 SHA-256/SHA-1/MD5+HMAC、v1.5.49 AES-CBC+PBKDF2),密文与派生密钥对 Node 逐字节一致;同期 N3 深度推进还有真实 zlib(v1.5.45)、async net/HTTP/UDP(v1.5.47)、streams/child_process(v1.5.43)等。
-> - **环形 `require()` 已补齐**(v1.5.47):本地 CJS 循环依赖按 Node 语义发布部分 `module.exports`,修复最后 2 个长期失败 fixture,套件首次全绿;当前 fixtures 基线 **362/362**。
+> **并发(方向五 C2)推进到 G-M-P N>2**:共享堆 G-M-P 路线(见 §4.5 补注)已从设计研究执行到真多核——双 M 工作窃取调度(GOMAXPROCS=2)→ per-P 无锁分配(M4)+ STW 安全点(M5)→ 真多 M stop-the-world GC 周期 → 泛化到 N>2(**GOMAXPROCS=3 真 3 线程窃取 + N 路 STW GC**,linux-arm64 Docker 验证)。`GOMAXPROCS=1` 保持字节一致自举定点;跨 M channel 唤醒、非 M0 协调者、x64 段寄存器 TLS 为已知余项。
+> - **E4 test262 落地首个基线**:真实 conformance harness(`tests/test262/run.mjs`,含 frontmatter/includes/negative 机制)已上线;当前基线 **20.55%**(stride-5 抽样运行 6462 例 / PASS 1328,TypedArray 区经 v0.2 构造器全局值自 0% 救起)。距 M4 的 ≥80% 目标尚远,作为 M4 进行中的量化锚点。
+> - **Node crypto 已到 AES-GCM/SHA-512/HKDF**(密文与派生密钥对 Node 逐字节一致);同期 N3 深度推进还有真实 zlib、async net/HTTP/UDP、streams/child_process 等。
+> - **性能(v0.2 新进展)**:静态可解析方法调用的编译期去虚拟化(自编译 −7.5%),对象 shape/隐藏类 IC 专项进行中(docs/SHAPE_IC_DESIGN.md)。
 > - 下方正文与 §5 里程碑表仍保留 2026-07-10 制定时点表述;各里程碑实际状态见 §5 表新增「实际状态」列。
 
 ## 0. 现状快照(2026-07-10 制定时点)
@@ -28,7 +26,7 @@
 | 自举 | ✅ 五目标(macOS/Linux × arm64/x64 + Windows-x64)`gen2 == gen3` 字节级定点 |
 | 产物 | 单文件原生可执行(Mach-O/ELF/PE),零第三方依赖、零外部解释器 |
 | 性能 | 自编译 240s → ~12s;对 Node 24 分负载:数值 ~2.7×、属性 ~16×、字符串 ~3×、Map 略快(区间线性扫描寄存器分配 + 站点缓存 + ToNumber 快路已落地,2026-07) |
-| 内存 | 分代 GC 缺省(v1.2.0 转正:sticky mark-bit minor + Go 式 full 步调 + 64KB span/O(1) 页映射);保守、非移动;自编译峰值 ~1.4GB(分代前 ~2GB) |
+| 内存 | 分代 GC 缺省(已转正:sticky mark-bit minor + Go 式 full 步调 + 64KB span/O(1) 页映射);保守、非移动;自编译峰值 ~1.4GB(分代前 ~2GB) |
 | ES | 较大 ES 子集(详见 ES_SUPPORT.md):class/async/解构/模板串/ESM 子集等已通;RegExp 引擎、完整 JSON、Proxy 等未完 |
 | Node | Node 风格 shim 子集(fs/path/process/console/os/child_process 部分);无 node_modules 解析、无包生态 |
 | 工具链 | `asm.js <file>` 编译、`asm.js run <file>` 直接执行(编译→运行→计时) |
@@ -120,7 +118,7 @@ asmjs_free(ctx);
 | **E3 内建完备** | 缺失/半残的内建对象 | `JSON.stringify/parse` **主体已落地**(2026-07-10,编译器注入纯 JS shim —— 内建 shim 机制首铺,后续内建复用;余 replacer/reviver/缩进/toJSON)、**自研 RegExp 引擎**(回溯式,先 BMP 后 Unicode)、`Date` 完整、`Number` 打印精度(15 位舍入已落地,余 shortest round-trip 第 16 位边角)、`Proxy/Reflect`(靠后)、`Intl` **非目标** |
 | **E4 度量体系** | 从"fixture 绿"升级到行业标尺 | 引入 **test262 子集**跑分(先挑 language/ + built-ins/ 中已实现面),CI 输出通过率仪表盘,README 公布数字 |
 
-> 注(2026-07-19 补):E1 行"`with` 明确列为非目标"为制定时点立场,与 [ES_SUPPORT.md](./ES_SUPPORT.md) 已标 ✅ 矛盾——`with` 实际已于 v1.5.35 落地(读/赋值/更新/方法解析,字节门控使非 `with` 代码产物不变),以 ES_SUPPORT.md 为准,此处保留原文备查。E4 已按此行设想落地:test262 harness v1.5.51 上线,首基线 20.4%(2026-07-17,见 `tests/test262/last_run_summary.json`)。
+> 注(2026-07-19 补):E1 行"`with` 明确列为非目标"为制定时点立场,与 [ES_SUPPORT.md](./ES_SUPPORT.md) 已标 ✅ 矛盾——`with` 实际已落地(读/赋值/更新/方法解析,字节门控使非 `with` 代码产物不变),以 ES_SUPPORT.md 为准,此处保留原文备查。E4 已按此行设想落地:test262 harness 已上线,当前基线 20.55%(2026-07-19,见 `tests/test262/last_run_summary.json`)。
 
 ### 2.2 工程原则
 
@@ -197,24 +195,24 @@ asmjs_free(ctx);
 | **C3 共享内存(远期)** | SharedArrayBuffer/Atomics | 需要 asm 层原子指令(LDXR/STXR、LOCK 前缀)与内存序;仅在 C2 证明需求后启动 |
 | **C4 GC 并发(远期)** | 并发标记(Go 蓝本) | 依赖 C2 的线程基建 + #11 屏障;Go 混合屏障为现成设计(见 M0 附注);CLI 场景收益有限,服务器场景(方向三成熟后)再评估 |
 
-> 注(2026-07-19 补):C2 行「每 worker 独立堆+GC(复用 L2b 上下文化改造)」的隔离堆路线**已被取代**——v1.5.40 落地的 [PARALLEL_DESIGN.md](./PARALLEL_DESIGN.md) 采用共享堆 G-M-P 直达路线(设计明确跳过隔离堆迂回),并已执行到 N>2:v1.5.41/44 per-M 上下文化(arm64 x28 P/M 寄存器)、v1.5.46 双 M 窃取调度、v1.5.48 per-P 分配 + STW 安全点、v1.5.50 多 M STW GC、v1.5.52 GOMAXPROCS=3 三线程窃取 + N 路 STW GC。上下文化的实际载体是 per-M 上下文而非 L2b 实例句柄;C4 的 STW 停等协议已提前部分变现。
+> 注(2026-07-19 补):C2 行「每 worker 独立堆+GC(复用 L2b 上下文化改造)」的隔离堆路线**已被取代**——[PARALLEL_DESIGN.md](./PARALLEL_DESIGN.md) 采用共享堆 G-M-P 直达路线(设计明确跳过隔离堆迂回),并已执行到 N>2:per-M 上下文化(arm64 x28 P/M 寄存器)、双 M 窃取调度、per-P 分配 + STW 安全点、多 M STW GC、GOMAXPROCS=3 三线程窃取 + N 路 STW GC(逐步版本沿革见 CHANGELOG v1.x 档案)。上下文化的实际载体是 per-M 上下文而非 L2b 实例句柄;C4 的 STW 停等协议已提前部分变现。
 
 依赖关系:C1 独立可先行(属 ES/Node 语义收口的一部分);C2 与 L2b(多实例上下文)共享同一重构;
 C3/C4 严格在 C2 之后。风险:线程 × 保守 GC = 每线程栈根扫描 + 停等协议,是 C2 的主要技术难点。
 
 ## 5. 优先级与里程碑
 
-性能/可靠性基座已收官(分代 GC #11 ✅ v1.2.0 转正;寄存器分配器 #12/#29 ✅ 区间线性扫描收官;P3 数值快路 ✅)——性能故事已可讲(num ~2.7×),引擎库化的 GC 依赖已满足。
+性能/可靠性基座已收官(分代 GC #11 ✅ 已转正;寄存器分配器 #12/#29 ✅ 区间线性扫描收官;P3 数值快路 ✅)——性能故事已可讲(num ~2.7×),引擎库化的 GC 依赖已满足。
 
-| 里程碑 | 内容 | 验收 | 实际状态(2026-07-19,v1.5.52) |
+| 里程碑 | 内容 | 验收 | 实际状态(2026-07-20,v0.2) |
 |--------|------|------|------|
-| **M0**(✅ 2026-07-10) | 分代 GC 收尾 + 寄存器分配器阶段2 | 已达成:影子自编译 0 MISS;分代转正缺省(v1.2.0,RSS −30%);span 页模型 S1;阶段2 实验定论(阶段3 = 每函数 IR 线性扫描) | ✅ 已达成(维持原判) |
-| **M1** | E1 语法扫尾 + E4 test262 接入 | 零静默退化;test262 仪表盘上线 | **大部分达成**:test262 harness 已上线并出首基线(v1.5.51,20.4%);E1 语法大体扫尾,但基线仍暴露 COMPILE_FAIL 601 例(parser 缺口存量),"零静默退化"未经全量证实 |
-| **M2** | N1 解析器 + N2 CJS 语义 | 解析测试向量全绿 | **已达成**:N1/N2 于 v1.5.16 落地;环形 `require()`(N2 循环依赖语义)于 v1.5.47 补齐,fixtures 首次全绿 |
+| **M0**(✅ 2026-07-10) | 分代 GC 收尾 + 寄存器分配器阶段2 | 已达成:影子自编译 0 MISS;分代转正缺省(RSS −30%);span 页模型 S1;阶段2 实验定论(阶段3 = 每函数 IR 线性扫描) | ✅ 已达成(维持原判) |
+| **M1** | E1 语法扫尾 + E4 test262 接入 | 零静默退化;test262 仪表盘上线 | **大部分达成**:test262 harness 已上线(当前基线 20.55%);E1 语法大体扫尾,但基线仍暴露 COMPILE_FAIL 601 例(parser 缺口存量),"零静默退化"未经全量证实 |
+| **M2** | N1 解析器 + N2 CJS 语义 | 解析测试向量全绿 | **已达成**:N1/N2 已落地;环形 `require()`(N2 循环依赖语义)已补齐,fixtures 首次全绿 |
 | **M3** | L1a 静态库(与 M2 并行) | C 宿主 demo 跑通 | **未启动**:CHANGELOG 无 L1a 对应条目(路线被 L2 route B 与 G-M-P 并发线挤占) |
-| **M4** | E2 语义 + E3 JSON/Number;N3 fs/path/buffer/events | test262 子集 ≥ 80% | **进行中**:test262 20.4% ≪ 80% 目标;E2/E3 持续收口(描述符/枚举序/JSON 全参/Dragon4),N3 推进至 streams/child_process/net/crypto 深度(v1.5.43–v1.5.51) |
+| **M4** | E2 语义 + E3 JSON/Number;N3 fs/path/buffer/events | test262 子集 ≥ 80% | **进行中**:test262 20.55% ≪ 80% 目标;E2/E3 持续收口(描述符/枚举序/JSON 全参/Dragon4),N3 推进至 streams/child_process/net/crypto 深度 |
 | **M5** | RegExp 引擎;N4 包验证集(首批 10 包);L1b/L1c | 10 包全绿;dylib demo | **部分达成**:自研 RegExp 引擎已落地(回溯式,大面完整,余 `\p{}`/`v` 标志等,见 ES_SUPPORT.md);**N4 包验证集与 L1b/L1c 未启动** |
-| **M6** | N5 `asm.js build`;E3 收尾;N4 二批 10 包;L2a 预研 | 真实 CLI 包单二进制;test262 ≥ 90% | **大部分未启动**:仅 L2a 预研被 route B 超前覆盖(全局 eval/`new Function` v1.5.39 前打通,直接 eval 词法捕获 v1.5.42 完成);**N5、N4(含二批)未启动**,E3 收尾(Date 完整等)仍在进行 |
+| **M6** | N5 `asm.js build`;E3 收尾;N4 二批 10 包;L2a 预研 | 真实 CLI 包单二进制;test262 ≥ 90% | **大部分未启动**:仅 L2a 预研被 route B 超前覆盖(全局 eval/`new Function` 已打通,直接 eval 词法捕获已完成);**N5、N4(含二批)未启动**,E3 收尾(Date 完整等)仍在进行 |
 
 每个里程碑的固定门禁:`npm run test:fixtures` 全绿 + 五目标 `gen2 == gen3` 回放 + 性能不回退(自编译耗时 ±5% 内)。
 

@@ -1,8 +1,8 @@
 # asm.js ES 标准支持列表
 
-> 状态基线: **v1.5.52**(2026-07-17;编译器全确定性 `gen1==gen2==gen3`,fixtures 362/362)。
+> 状态基线: **v0.2**(2026-07-20;编译器全确定性 `gen1==gen2==gen3`,fixtures 362/362)。
 > 本文件是**当前支持面清单**,不含修复过程——历史修复日志与旧版逐条注记已归档至 [archive/ES_SUPPORT_HISTORY.md](./archive/ES_SUPPORT_HISTORY.md),版本级变更以 [CHANGELOG.md](../CHANGELOG.md) 为准。
-> 核对方法: `node tests/run_fixtures.mjs` 全量 + 逐特性最小程序与 `node` 输出逐字节对照 + es-compat 差分计分卡(`tests/es-compat/`,诚实覆盖率 ~42%) + test262 差分(`tests/test262/run.mjs`,首个诚实基线 1,318/6,462 = 20.4%,stride-5 子集,v1.5.51)。
+> 核对方法: `node tests/run_fixtures.mjs` 全量 + 逐特性最小程序与 `node` 输出逐字节对照 + es-compat 差分计分卡(`tests/es-compat/`,诚实覆盖率 ~42%) + test262 差分(`tests/test262/run.mjs`,当前基线 1,328/6,462 = 20.55%,stride-5 子集)。
 > 图例: ✅ 支持(与 node 对拍一致)/ ⚠️ 部分支持(注明偏差)/ ❌ 未支持 / 🔷 引擎库(L2)形态专属,AOT 非目标
 
 ## 1. ES5 及更早
@@ -13,21 +13,21 @@
 | 标签语句 / 带标签 break·continue | ✅ | |
 | 函数/闭包/递归 | ✅ | 自举级;偏差:>6 形参只绑前 6(6 寄存器调用约定) |
 | `try/catch/finally` + `throw` | ✅ | finally 跨 return/break/continue 亦执行;跨函数 throw 传播 |
-| Error 族(8 个内建 Error 类) | ⚠️ | 构造/message/name/cause/instanceof/toString/`class X extends Error` 均可;引擎合成的 TypeError(解构 null/undefined、读 `null`/`undefined` 属性 `null.x`/`undefined.x`→`Cannot read properties of null\|undefined (reading 'x')`、计算下标 `null[k]`/`undefined[k]`(v1.5.47 起抛可捕获 TypeError,同 `.x` 修法)、class·Map·Set·WeakMap·WeakSet 无 `new` 调用)为真 TypeError 对象(`e instanceof TypeError`/`e.name`/`e.message` 成立,可 catch)。偏差:无 `.stack`、`e.constructor` 未挂;`fn()`(值非函数)运行时仍抛裸字符串 |
+| Error 族(8 个内建 Error 类) | ⚠️ | 构造/message/name/cause/instanceof/toString/`class X extends Error` 均可;引擎合成的 TypeError(解构 null/undefined、读 `null`/`undefined` 属性 `null.x`/`undefined.x`→`Cannot read properties of null\|undefined (reading 'x')`、计算下标 `null[k]`/`undefined[k]`(起抛可捕获 TypeError,同 `.x` 修法)、class·Map·Set·WeakMap·WeakSet 无 `new` 调用)为真 TypeError 对象(`e instanceof TypeError`/`e.name`/`e.message` 成立,可 catch)。偏差:无 `.stack`、`e.constructor` 未挂;`fn()`(值非函数)运行时仍抛裸字符串 |
 | Array 方法簇 | ✅ | map/filter/reduce(Right)/forEach/find(Last)(Index)/indexOf/lastIndexOf/includes/slice/splice/shift/unshift/push(多参+spread)/pop/concat/join/sort/reverse/fill/copyWithin/keys/values/entries/at;方法可作一等值(`const f=arr.push; f.call(...)`) |
-| String 方法簇 | ✅ | indexOf/charAt/charCodeAt/split(串+正则+limit)/slice/substring/replace/replaceAll/trim 系/大小写/repeat/includes/starts·endsWith/padStart·End/at/localeCompare 等;字符串 NUL 透明(v1.5.51:`\x00`/` ` 转义保留,长度/索引/拼接/比较/JSON 与 node 一致;仅 `\0` 八进制转义仍丢弃,编译器以之作 EOF 哨兵);UTF-16 码元语义缺失见 §14 |
+| String 方法簇 | ✅ | indexOf/charAt/charCodeAt/split(串+正则+limit)/slice/substring/replace/replaceAll/trim 系/大小写/repeat/includes/starts·endsWith/padStart·End/at/localeCompare 等;字符串 NUL 透明(`\x00`/` ` 转义保留,长度/索引/拼接/比较/JSON 与 node 一致;仅 `\0` 八进制转义仍丢弃,编译器以之作 EOF 哨兵);UTF-16 码元语义缺失见 §14 |
 | Object 元操作 | ✅ | keys/values/entries/assign/create(含 descriptors)/defineProperty(-ies)/getOwnPropertyDescriptor(s)/getOwnPropertyNames/freeze/seal/preventExtensions/isExtensible/hasOwn/hasOwnProperty/isPrototypeOf/propertyIsEnumerable;枚举序符合 ES `[[OwnPropertyKeys]]`(整数键升序在前) |
 | 属性描述符 | ✅ | per-property writable/enumerable/configurable、访问器 get/set、非枚举属性被 keys/for-in/JSON 过滤、`configurable:false` 拒删。偏差:redefine 不可配置属性不抛 |
 | `delete` | ✅ | 稀疏洞语义 ❌(dense-with-undefined) |
 | `Function.prototype.call/apply/bind` | ✅ | 偏差:`apply` 实参 >5 截断(调用 ABI) |
-| 函数反射(`.name`/`.length`) | ✅ | 静态解析;`.name` 对运行时函数值(参数/成员链)经函数元数据侧表反射(v1.5.49);`.length` 运行时值仍为 0 |
-| 函数自定义属性(`fn.x = 1`)/ 声明身份 `f === f` | ✅ | 属性侧表(v1.5.39);模板对象/数组 `.raw` 同机制 |
-| `arguments.length` | ✅ | 真实 argc(v1.5.39 调用 ABI) |
+| 函数反射(`.name`/`.length`) | ✅ | 静态解析;`.name` 对运行时函数值(参数/成员链)经函数元数据侧表反射;`.length` 运行时值仍为 0 |
+| 函数自定义属性(`fn.x = 1`)/ 声明身份 `f === f` | ✅ | 属性侧表;模板对象/数组 `.raw` 同机制 |
+| `arguments.length` | ✅ | 真实 argc(调用 ABI) |
 | `typeof` / `parseInt` / `parseFloat` / `Number()` / `String()` | ✅ | Number() 支持 0x/0o/0b 前缀;全局 isNaN/isFinite ✅;`typeof new Map()`/`new Set()` 正确返回 `"object"`(裸堆指针 tag 守卫) |
 | `"use strict"` | ⚠️ | 可解析;严格模式语义未逐条落实 |
-| `with` | ✅ | 读/赋值/更新/方法解析(v1.5.35) |
+| `with` | ✅ | 读/赋值/更新/方法解析 |
 | ES5 函数构造器(`function F(){}` + `new F()` + prototype) | ✅ | |
-| 严格求值顺序 | ✅ | 成员赋值「对象→键→值」、计算键「键→值」、复合赋值基/键单次求值(v1.5.39) |
+| 严格求值顺序 | ✅ | 成员赋值「对象→键→值」、计算键「键→值」、复合赋值基/键单次求值 |
 
 ## 2. ES2015 (ES6)
 
@@ -153,7 +153,7 @@
 | 静态 `import`/`export`(named/default) | ✅ | 自举级(编译器自身 ~90 模块) |
 | 循环依赖 / 初始化一次 / live binding / TDZ | ✅ | |
 | 动态 `import()`(静态 specifier) | ✅ | 运行时 specifier 🔷 L2 |
-| CommonJS `require()`(AOT 子集) | ✅ | CJS 文件读取期包装为 ESM;静态 specifier 入模块图。环形 require ✅(v1.5.47:环上本地 CJS 模块编译为独立惰性初始化函数,函数体入口即发布 `module.exports`,循环再 require 读到部分对象,Node 语义;ESM/非环 CJS 不变) |
+| CommonJS `require()`(AOT 子集) | ✅ | CJS 文件读取期包装为 ESM;静态 specifier 入模块图。环形 require ✅(环上本地 CJS 模块编译为独立惰性初始化函数,函数体入口即发布 `module.exports`,循环再 require 读到部分对象,Node 语义;ESM/非环 CJS 不变) |
 | `node_modules` + `package.json` 解析 | ✅ | `exports`(root/子路径/`*`/条件)、`main` vs `module`、`type`、`node:` 前缀含子路径 |
 | ESM↔CJS 互操作 | ✅ | CJS default/具名合成、`require(esm)`→namespace |
 
@@ -183,10 +183,10 @@
 
 ## 15. 方言扩展(非 ES,标注避免混淆)
 
-- `js f(x)` spawn 语句 + `Channel` 内建(Stage-0 并发,[PARALLEL_DESIGN.md](./PARALLEL_DESIGN.md);linux-arm64 已落地 GOMAXPROCS>1 多 OS 线程 work-stealing 调度与 N 路 stop-the-world GC,v1.5.46–v1.5.52)。
+- `js f(x)` spawn 语句 + `Channel` 内建(Stage-0 并发,[PARALLEL_DESIGN.md](./PARALLEL_DESIGN.md);linux-arm64 已落地 GOMAXPROCS>1 多 OS 线程 work-stealing 调度与 N 路 stop-the-world GC)。
 - `--target wasm32-wasi` WebAssembly 目标([WASM_DESIGN.md](./WASM_DESIGN.md))。
 
 ## 16. 一句话结论
 1. `[] + x` 错值(ToPrimitive)
 
-经 v1.5.x 修复波,asm.js 的常用 ES 面(class 全家桶/async 全形态/迭代协议/属性描述符与枚举序/Proxy·Reflect/正则大面/typed arrays/JSON 全参)已与 node 对拍一致;自举链路覆盖的核心子集经逐字节确定性自举门(gen1==gen2==gen3)验证。剩余结构性缺口:字符串 UTF-16 码元语义、内建子类化与 `Symbol.species`、Iterator helpers、`\p{}`/`v` 正则、Intl(非目标)。
+经此前修复波,asm.js 的常用 ES 面(class 全家桶/async 全形态/迭代协议/属性描述符与枚举序/Proxy·Reflect/正则大面/typed arrays/JSON 全参)已与 node 对拍一致;自举链路覆盖的核心子集经逐字节确定性自举门(gen1==gen2==gen3)验证。剩余结构性缺口:字符串 UTF-16 码元语义、内建子类化与 `Symbol.species`、Iterator helpers、`\p{}`/`v` 正则、Intl(非目标)。

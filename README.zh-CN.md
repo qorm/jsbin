@@ -8,7 +8,7 @@
 
 ## 状态
 
-自举、零依赖的 JavaScript→原生 AOT 编译器(5 目标:macOS/Linux arm64+x64、Windows x64)。最新版 **v1.5.52** — **G-M-P N>2:3+ OS 线程**——通用工作窃取 + 跨 3 个真线程的 N 路停止世界 GC(linux-arm64);`GOMAXPROCS=1` 保持逐字节一致不动点——建立在 NUL 透明字符串、AES-GCM 加密、x64 `process.exit`/`Date` 修复、test262 harness(20.4%)、真 zlib / TCP、完整编译器确定性(`gen1==gen2==gen3`)、完整 async 之上。完整版本历史见 **[CHANGELOG.zh-CN.md](./CHANGELOG.zh-CN.md)**。
+自举、零依赖的 JavaScript→原生 AOT 编译器(5 目标:macOS/Linux arm64+x64、Windows x64)。最新版 **v0.2** — TypedArray 构造器全局值(test262 TypedArray 区自 0% 救起)+ 静态可解析方法调用的编译期去虚拟化(自编译 −7.5%)——建立在 G-M-P N>2 通用工作窃取 + 跨 3 个真线程的 N 路停止世界 GC(linux-arm64)、NUL 透明字符串、AES-GCM 加密、test262 harness、真 zlib / TCP、完整编译器确定性(`gen1==gen2==gen3`)、完整 async 之上。完整版本历史见 **[CHANGELOG.zh-CN.md](./CHANGELOG.zh-CN.md)**。
 
 `asm.js` 已在**全部五个目标(macOS-ARM64、macOS-x64、Linux-ARM64、Linux-x64、Windows-x64)上实现自举**:在每个目标上,编译器把自身源码编译成原生二进制,该二进制再次编译编译器,产物**逐字节一致** —— 稳定的自我复现定点(`gen2 == gen3`;Linux 在 Docker 验证、x64 目标在 Rosetta 2 下、Windows 在 Wine 下)。当前支持较大的 ES 子集与有限的 Node 核心 shim 子集;完整 ECMAScript 与完整 Node.js 兼容仍在进行中。
 
@@ -17,7 +17,7 @@
 - **五目标自举**:编译器把真实 CLI(`cli.js`)编译成原生二进制;该二进制再编译 `cli.js`,`gen2 == gen3` 逐字节一致(稳定定点)。macOS-ARM64 原生验证、Linux 双架构 Docker 验证、macOS-x64/Linux-x64 Rosetta 2 验证、Windows-x64 Wine 验证。无三方库、无外部解释器。
 - 现代 JavaScript 语法:箭头函数、闭包、类(方法/getter/静态)、async/await、Promise、模块、for-of/for-in、try/catch、BigInt、模板字符串、解构
 - ESM import/export 流程(通过仓库内 fixtures 验证)
-- Node 风格内建:`console`、`process`、`fs`(部分)、`path`、`timers`(部分)、`os`;另有 v1.5.42–v1.5.51 落地的真实 `crypto`(SHA-1/256/512、HMAC、AES-CBC/CTR/GCM、PBKDF2、HKDF)、`zlib`(DEFLATE/gzip)、`net`/`http`/`dgram`、`stream`、`child_process`,均为部分子集;逐模块状态见 [docs/NODEJS_SUPPORT_ANALYSIS.md](./docs/NODEJS_SUPPORT_ANALYSIS.md)
+- Node 风格内建:`console`、`process`、`fs`(部分)、`path`、`timers`(部分)、`os`;另有真实 `crypto`(SHA-1/256/512、HMAC、AES-CBC/CTR/GCM、PBKDF2、HKDF)、`zlib`(DEFLATE/gzip)、`net`/`http`/`dgram`、`stream`、`child_process`,均为部分子集;逐模块状态见 [docs/NODEJS_SUPPORT_ANALYSIS.md](./docs/NODEJS_SUPPORT_ANALYSIS.md)
 - `JSON.stringify`/`JSON.parse` 全参数(replacer/space/reviver/toJSON;转义含 `\uXXXX`→UTF-8、嵌套结构)—— 以编译器注入的纯 JS shim 实现,其它内建复用该机制
 - `instanceof Array/Object`、`Array.isArray`;浮点打印去尾零(常见值与 V8 一致,第 16 位有效数字边角容许偏差)
 - 分代垃圾回收器,缺省开启(sticky mark-bit minor + Go 式 full 步调:256MB nursery,堆增长过 live×2 收全堆;保守、非移动)。编译期可退:`GC_FULLONLY=1`(旧 full-only/4GB)、`GC_DISABLE=1`。编译器自编译负载下峰值 RSS 降 ~30%,耗时 ~+5%
@@ -27,7 +27,7 @@
 
 - 完整 ECMAScript 覆盖(部分语法/API 未实现;逐版本支持矩阵见 [docs/ES_SUPPORT.md](./docs/ES_SUPPORT.md))
 - 完整 Node.js 兼容(核心 shim 仅子集;逐模块 API 状态见 [docs/NODEJS_SUPPORT_ANALYSIS.md](./docs/NODEJS_SUPPORT_ANALYSIS.md))
-- 性能:生成代码已有成体系的优化层(区间线性扫描寄存器分配、自验证属性站点缓存、ToNumber 内联快路、比较-分支融合)—— 2026-07 对 Node 24 实测(墙钟,Apple Silicon,输出逐字节一致):数值循环 ~2.7×、属性访问 ~16×、字符串构建 ~3×、Map 存取略快于 Node。优化持续进行
+- 性能:生成代码已有成体系的优化层(区间线性扫描寄存器分配、自验证属性站点缓存、ToNumber 内联快路、比较-分支融合)—— 2026-07 对 Node 24 实测(墙钟,Apple Silicon,输出逐字节一致):数值循环 ~2.7×、属性访问 ~13×、字符串构建 ~3×、Map 存取略快于 Node。优化持续进行
 
 ## 优势与局限
 
@@ -45,11 +45,11 @@
 ### 局限
 
 - **是较大的 ES 子集,不是完整 ECMAScript。** 部分内建与边角语义仍不完整(`Intl`、RegExp `\p{…}`/`v` 标志、字符串 UTF-16 码元语义、iterator helpers、内建类子类化);个别构造能编译但行为不正确而非显式报错(正在逐个收敛为编译期显式错误)。见 [docs/ES_SUPPORT.md](./docs/ES_SUPPORT.md)。
-- **尚不兼容 Node。** 核心模块 shim 只覆盖子集(`fs`、`path`、`process`、`console`、`os` 及部分其它)。`node_modules`/`package.json`(`exports`)解析与 AOT CommonJS `require` 子集已于 v1.5.16 落地,但真实 npm 包消费尚未验证(环形 `require` 不支持)。见 [docs/NODEJS_SUPPORT_ANALYSIS.md](./docs/NODEJS_SUPPORT_ANALYSIS.md)。
-- **性能处于 AOT 档位,分负载差异大。** 2026-07 对 Node 24 实测:数值循环 ~2.7×(优化前 ~14×)、属性访问密集 ~16×(从 ~32× 收窄)、字符串构建 ~3×、Map 操作略快于 Node。要 V8-JIT 级多态属性热循环速度仍不是对的工具;数值/CLI/启动敏感负载差距已收窄到小倍数(asm.js ~2ms 启动 vs Node ~40ms)。已落地杠杆:区间线性扫描寄存器分配、属性站点缓存、ToNumber 内联快路、比较-分支融合;下一杠杆:对象 shape(属性差距)。
+- **尚不兼容 Node。** 核心模块 shim 只覆盖子集(`fs`、`path`、`process`、`console`、`os` 及部分其它)。`node_modules`/`package.json`(`exports`)解析与 AOT CommonJS `require` 子集已就位,但真实 npm 包消费尚未验证(环形 `require` 不支持)。见 [docs/NODEJS_SUPPORT_ANALYSIS.md](./docs/NODEJS_SUPPORT_ANALYSIS.md)。
+- **性能处于 AOT 档位,分负载差异大。** 2026-07 对 Node 24 实测:数值循环 ~2.7×(优化前 ~14×)、属性访问密集 ~13×(从 ~32× 收窄)、字符串构建 ~3×、Map 操作略快于 Node。要 V8-JIT 级多态属性热循环速度仍不是对的工具;数值/CLI/启动敏感负载差距已收窄到小倍数(asm.js ~2ms 启动 vs Node ~40ms)。已落地杠杆:区间线性扫描寄存器分配、属性站点缓存、ToNumber 内联快路、比较-分支融合;下一杠杆:对象 shape(属性差距)。
 - **内存模型为保守式非移动。** 分代 GC(sticky mark-bit minor + Go 式 full 步调,64KB 按类 span + O(1) 页映射)已是缺省;仍为保守/非移动 + 大虚拟地址预留,重负载峰值 RSS 高于成熟运行时(编译器自编译峰值 ~1.4 GB,分代前 ~2 GB)。
 - **`eval` 以封闭世界为代价、无 native addon。** 独立二进制默认封闭世界;N-API/`.node` 插件与单二进制模型冲突,不在范围内。全局作用域的 `eval`/`new Function` 现已可用(引擎库 route B:使用它们的程序会把编译器编入产物,见 `engine/README.md`);词法作用域捕获与运行时 specifier 的 `import()` 仍待做(ROADMAP L2c)。
-- **未达生产级。** 尚无稳定性承诺与 semver 纪律,主力开发者一人。测试覆盖仍以 fixtures 为主(362/362);test262 符合性 harness 已于 v1.5.51 落地,首个基线为 stride-5 子集(`language/` + 13 个核心 `built-ins/`)1,318 / 6,462 = 20.4%(见 `tests/test262/last_report.md`),数字仍低、正在持续提升。
+- **未达生产级。** 尚无稳定性承诺与 semver 纪律,主力开发者一人。测试覆盖仍以 fixtures 为主(362/362);test262 符合性 harness 已就位,当前基线为 stride-5 子集(`language/` + 13 个核心 `built-ins/`)1,328 / 6,462 = 20.55%(见 `tests/test262/last_report.md`),数字仍低、正在持续提升。
 
 ### 适合与不适合
 
