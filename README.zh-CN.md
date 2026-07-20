@@ -8,7 +8,7 @@
 
 ## 状态
 
-自举、零依赖的 JavaScript→原生 AOT 编译器(5 目标:macOS/Linux arm64+x64、Windows x64)。最新版 **v0.2** — TypedArray 构造器全局值(test262 TypedArray 区自 0% 救起)+ 静态可解析方法调用的编译期去虚拟化(自编译 −7.5%)——建立在 G-M-P N>2 通用工作窃取 + 跨 3 个真线程的 N 路停止世界 GC(linux-arm64)、NUL 透明字符串、AES-GCM 加密、test262 harness、真 zlib / TCP、完整编译器确定性(`gen1==gen2==gen3`)、完整 async 之上。完整版本历史见 **[CHANGELOG.zh-CN.md](./CHANGELOG.zh-CN.md)**。
+自举、零依赖的 JavaScript→原生 AOT 编译器(5 目标:macOS/Linux arm64+x64、Windows x64)。最新版 **v0.2.1** — 形状(隐藏类)内联缓存基础设施(对象字面量/类实例静态形状描述符、16 字节双模属性 IC 站点)+ 自举"布局悬崖"根因修复(macOS `writeFileSync` 缺 `O_TRUNC`)——建立在 TypedArray 构造器全局值、静态可解析方法调用的编译期去虚拟化(自编译 −7.5%)、G-M-P N>2 通用工作窃取 + 跨 3 个真线程的 N 路停止世界 GC(linux-arm64)、NUL 透明字符串、AES-GCM 加密、test262 harness、真 zlib / TCP、完整编译器确定性(`gen1==gen2==gen3`)、完整 async 之上。完整版本历史见 **[CHANGELOG.zh-CN.md](./CHANGELOG.zh-CN.md)**。
 
 `asm.js` 已在**全部五个目标(macOS-ARM64、macOS-x64、Linux-ARM64、Linux-x64、Windows-x64)上实现自举**:在每个目标上,编译器把自身源码编译成原生二进制,该二进制再次编译编译器,产物**逐字节一致** —— 稳定的自我复现定点(`gen2 == gen3`;Linux 在 Docker 验证、x64 目标在 Rosetta 2 下、Windows 在 Wine 下)。当前支持较大的 ES 子集与有限的 Node 核心 shim 子集;完整 ECMAScript 与完整 Node.js 兼容仍在进行中。
 
