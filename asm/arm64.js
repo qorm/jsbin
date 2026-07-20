@@ -1354,16 +1354,16 @@ export class ARM64Assembler {
     // runtimeLabel: 运行时使用的标签名（如 "_str_object_type"）
     // value: 字符串值（如 "object"）
     registerRuntimeString(runtimeLabel, value) {
-        // 如果值已存在，使用已有的标签
-        if (this._stringInternMap.has(value)) {
-            let labelIndex = this._stringInternMap.get(value);
+        // 单次查找(has+get 两次全串哈希→一次;驻留热路径)
+        let labelIndex = this._stringInternMap.get(value);
+        if (labelIndex !== undefined) {
             let actualLabel = "_str_" + labelIndex;
             // 创建别名：runtimeLabel -> actualLabel
             this.labelAliases.set(runtimeLabel, actualLabel);
             return;
         }
         // 值不存在，添加新字符串
-        let labelIndex = this.strings.length;
+        labelIndex = this.strings.length;
         let actualLabel = "_str_" + labelIndex;
         this.strings.push(value);
         this._stringInternMap.set(value, labelIndex);
@@ -1372,13 +1372,13 @@ export class ARM64Assembler {
     }
 
     addString(str) {
-        // 检查是否已经有相同的字符串
-        if (this._stringInternMap.has(str)) {
-            let labelIndex = this._stringInternMap.get(str);
+        // 单次查找(has+get 两次全串哈希→一次;驻留热路径)
+        let labelIndex = this._stringInternMap.get(str);
+        if (labelIndex !== undefined) {
             return "_str_" + labelIndex;
         }
         // 新字符串，添加到列表
-        let labelIndex = this.strings.length;
+        labelIndex = this.strings.length;
         let labelName = "_str_" + labelIndex;
         this.strings.push(str);
         this._stringInternMap.set(str, labelIndex);
