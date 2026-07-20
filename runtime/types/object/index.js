@@ -1310,7 +1310,14 @@ export class ObjectGenerator {
         vm.loadByte(VReg.V3, VReg.V4, 1);
         vm.cmpImm(VReg.V3, 0);
         vm.jne("_osic_slow");
-        vm.load(VReg.V0, VReg.A3, 0); // 缓存下标
+        // [A3] 站点槽 16B {cached_shape@0, cached_index@8}:cached_shape==0 走 legacy
+        // 下标路径(同旧语义),非 0 走形状路径(形状相等 ⟹ 键序相等,省 count/props
+        // 判空;v1 保留键自验证单 cmp 作安全网)。
+        vm.load(VReg.V0, VReg.A3, 0); // cached shape
+        vm.cmpImm(VReg.V0, 0);
+        vm.jne("_osic_shaped");
+        // ---- legacy 下标路径(无形状对象) ----
+        vm.load(VReg.V0, VReg.A3, 8); // 缓存下标
         vm.load(VReg.V3, VReg.V4, 8); // count
         vm.cmp(VReg.V0, VReg.V3);
         vm.jge("_osic_slow");
@@ -1322,6 +1329,20 @@ export class ObjectGenerator {
         vm.load(VReg.V0, VReg.V3, 0);
         vm.cmp(VReg.V0, VReg.A1); // 键自验证
         vm.jne("_osic_slow");
+        vm.jmp("_osic_slot_found");
+        // ---- 形状路径(命中省 count/props 防御) ----
+        vm.label("_osic_shaped");
+        vm.load(VReg.V3, VReg.V4, OBJECT_SHAPE_OFFSET); // obj shape
+        vm.cmp(VReg.V3, VReg.V0);
+        vm.jne("_osic_slow"); // 形状不符 → 慢路重学习
+        vm.load(VReg.V0, VReg.A3, 8); // cached index
+        vm.load(VReg.V3, VReg.V4, OBJECT_PROPS_PTR_OFFSET);
+        vm.shlImm(VReg.V0, VReg.V0, 4);
+        vm.add(VReg.V3, VReg.V3, VReg.V0); // 属性地址
+        vm.load(VReg.V0, VReg.V3, 0);
+        vm.cmp(VReg.V0, VReg.A1); // 键自验证(v1 保留)
+        vm.jne("_osic_slow");
+        vm.label("_osic_slot_found");
         // [访问器] 旧值为非零裸堆指针（可能 TYPE_GETTER 标记）→ 落慢路细判；
         // 装箱值/0 直写。热路仅 +4 op（load 同缓存行 + 2 cmp）。
         vm.load(VReg.V0, VReg.V3, 8); // 旧值
@@ -1374,18 +1395,23 @@ export class ObjectGenerator {
         vm.jmp("_osic_scan");
 
         vm.label("_osic_hit");
+        // [A3] 形状先取存 V3(V2=裸对象,下方旧值判别会覆盖 V2;判别 scratch 用 V1
+        // 不用 V3——装箱值分支会贯穿到 _osic_hit_plain,V3 须保活到站点回填)
+        vm.load(VReg.V3, VReg.V2, OBJECT_SHAPE_OFFSET); // obj shape
         // [访问器] 旧值为非零裸堆指针 → 委托 _object_set（含 setter 分派；罕见路径，
         // 不回填站点——键自验证会让后续快路对该键恒 miss 落慢路，正确性不受影响）
         vm.load(VReg.V2, VReg.V0, 8); // 旧值
         vm.cmpImm(VReg.V2, 0);
         vm.jeq("_osic_hit_plain");
-        vm.shrImm(VReg.V3, VReg.V2, 48);
-        vm.cmpImm(VReg.V3, 0);
+        vm.shrImm(VReg.V1, VReg.V2, 48);
+        vm.cmpImm(VReg.V1, 0);
         vm.jeq("_osic_delegate");
         vm.label("_osic_hit_plain");
         vm.sub(VReg.V1, VReg.V0, VReg.V4);
         vm.shrImm(VReg.V1, VReg.V1, 4);
-        vm.store(VReg.S3, 0, VReg.V1); // 回填站点槽
+        vm.store(VReg.S3, 8, VReg.V1); // 回填站点:下标@8
+        vm.store(VReg.S3, 0, VReg.V3); // [A3] 回填站点:形状@0(V3=_osic_hit 处取,
+        // jeq delegate 的访问器分支不达此,形状值在 plain 两路均保活)
         vm.store(VReg.V0, 8, VReg.S2); // 写 value
         vm.mov(VReg.A0, VReg.S0);
         vm.call("_gc_remember");

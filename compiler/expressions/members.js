@@ -205,7 +205,10 @@ export const MemberCompiler = {
             return;
         }
         const siteLabel = this.ctx.newLabel("ics_site");
+        // [A3] 站点槽 16B:{cached_shape=0(legacy 模式), cached_index=大于任何
+        // count 的初值} → 首次必落慢路回填
         this.asm.addDataLabel(siteLabel);
+        this.asm.addDataQword(0);
         this.asm.addDataQword(0x7fffffff);
         this.emitBoxedStringKey(propName, VReg.A1);
         vm.lea(VReg.A3, siteLabel);
