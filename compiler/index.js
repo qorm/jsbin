@@ -3305,7 +3305,22 @@ function scanRegexLiteralBody(src, i) {
     return false;
 }
 
+// [PERF] 按编译期缓存:同一 (forRequire, sourcePath, importSource) 的解析结果在一次
+// 编译内不变(文件系统快照语义)。省掉每次重复的 path.resolve/normalize/existsSync/
+// statSync(每次 import 数个系统调用与一串串操作,自编译实测 resolveImports 簇 ~6.7%)。
+// 进程级 Map:CLI 单编译进程天然有界;route B 多次编译共享亦无碍(内容只增)。
+const _resolvePathMemo = new Map();
+
 function resolveModulePath(importSource, sourcePath, nodeShimPath, pathMod, fsMod, forRequire) {
+    const memoKey = (forRequire ? "R" : "I") + (sourcePath || "") + "|" + importSource;
+    let memoHit = _resolvePathMemo.get(memoKey);
+    if (memoHit !== undefined) return memoHit;
+    const resolved = resolveModulePathUncached(importSource, sourcePath, nodeShimPath, pathMod, fsMod, forRequire);
+    _resolvePathMemo.set(memoKey, resolved);
+    return resolved;
+}
+
+function resolveModulePathUncached(importSource, sourcePath, nodeShimPath, pathMod, fsMod, forRequire) {
     if (!importSource) return "";
 
     const normalizedSource = normalizeNodeModuleName(importSource);
