@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-19T17:55:31.511Z",
+  "generated": "2026-07-20T08:23:12.237Z",
   "config": {
     "corpus": "/Users/dmy/work/jsbin/.test262-corpus",
     "target": "macos-arm64",
@@ -22,7 +22,7 @@
     ],
     "stride": 5,
     "max": 0,
-    "jobs": 10
+    "jobs": 8
   },
   "discovered": 33776,
   "excluded": {
@@ -45,9 +45,9 @@
   "run": 6462,
   "totals": {
     "PASS": 1328,
-    "FAIL": 4056,
+    "FAIL": 4057,
     "COMPILE_FAIL": 601,
-    "CRASH": 477
+    "CRASH": 476
   },
   "passRatePct": 20.55,
   "byArea": {
@@ -125,9 +125,9 @@
     },
     "built-ins/TypedArray": {
       "PASS": 10,
-      "FAIL": 221,
+      "FAIL": 222,
       "COMPILE_FAIL": 0,
-      "CRASH": 57
+      "CRASH": 56
     },
     "language/expressions": {
       "PASS": 488,
@@ -165,7 +165,7 @@
     },
     {
       "pattern": "CRASH: run signal SIGSEGV",
-      "count": 415
+      "count": 413
     },
     {
       "pattern": "FAIL: TypedArray/ArrayBuffer semantics",
@@ -173,7 +173,7 @@
     },
     {
       "pattern": "FAIL: array contents mismatch (compareArray)",
-      "count": 104
+      "count": 105
     },
     {
       "pattern": "FAIL: constructor-ness reflection (isConstructor / not-a-constructor)",
@@ -185,7 +185,7 @@
     },
     {
       "pattern": "CRASH: run signal SIGBUS",
-      "count": 19
+      "count": 20
     },
     {
       "pattern": "FAIL: negative test wrong outcome (phase=runtime)",

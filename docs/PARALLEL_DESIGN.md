@@ -122,7 +122,7 @@ GC 根扫描区 = `[_data_start, _data_gc_end)`,跳过 `[_heap_meta, _heap_meta_
 
 | 族 | 语义 | 终态分类 |
 |---|---|---|
-| `icg_site_*` / `ics_site_*` | P2 属性读写站点缓存(**自验证键下标**,单 qword) | **ATOMIC-良性竞争**:8B 对齐读写在 arm64/x64 天然原子;值自验证,读到旧值/别人回填的值 → 验证失败走慢路。Go 风格保留全局,零改动(需在两后端确认无双字写) |
+| `icg_site_*` / `ics_site_*` | 属性读写站点缓存(icg 已 16B 化 {cached_shape, cached_index},形状 IC A2;ics 仍 8B 下标槽) | **ATOMIC-良性竞争**:8B 对齐读写天然原子;16B 双字段可被竞争撕裂(新形状+旧下标),但**键自验证单 cmp 兜底**——撕裂对必验证失败走慢路重学习,无错值。Go 风格保留全局,零改动。**注意:A3 若消除键自验证,须先解决撕裂对(release/acquire 配对或并行下保留 cmp),重审此行** |
 | `_tmplsite_*` | tagged template 模板对象站点 memo | ATOMIC 发布(CAS 或 last-writer-wins)。竞争双初始化 → 模板对象站点恒同性被打破(规范可见);低危,文档化或 CAS |
 | `_funcclosure_*` / `_funcproto_*` | 声明函数闭包/原型 memo(f===f 身份) | 同上:CAS 发布,保身份稳定 |
 | `_classinfo_*`/superinfo/builtin 闭包槽 | 类元数据/内置闭包 memo | 同上 init-once ATOMIC |

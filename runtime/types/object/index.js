@@ -1497,6 +1497,9 @@ export class ObjectGenerator {
         vm.jmp("_odel_shift");
         vm.label("_odel_shift_done");
         vm.store(VReg.S0, 8, VReg.V4); // count--
+        // [A2] 删键:键集合改变,形状失效置 0
+        vm.movImm(VReg.V0, 0);
+        vm.store(VReg.S0, OBJECT_SHAPE_OFFSET, VReg.V0);
         // [#61 P2] flags 块同步下移(仅当已 materialize)。S3=删除下标、S2=旧 count。
         // 逐字节 flags[i]=flags[i+1] for i in [idx, count-1)。全 V scratch,S 保活。
         vm.load(VReg.V0, VReg.S0, OBJECT_FLAGS_PTR_OFFSET);
@@ -1958,6 +1961,10 @@ export class ObjectGenerator {
         vm.call("_object_grow_flags");
 
         vm.label("_object_set_have_room");
+        // [A2] 新增键:键集合改变,形状失效置 0(更新已有键不经此路;字面量/类
+        // 构造期的字段追加发生在赋形状之前,置 0 无害)。
+        vm.movImm(VReg.V0, 0);
+        vm.store(VReg.S0, OBJECT_SHAPE_OFFSET, VReg.V0);
         // 追加新属性：地址 = props_ptr + count*16
         vm.load(VReg.V2, VReg.S0, OBJECT_PROPS_PTR_OFFSET);
         vm.shl(VReg.V0, VReg.S3, 4);
@@ -3305,6 +3312,9 @@ export class ObjectGenerator {
         vm.cmp(VReg.V2, VReg.V1);
         vm.jge("_object_setPrototypeOf_done");
         vm.store(VReg.V2, 16, VReg.V3);
+        // [A2] 原型改写:保守形状置 0(键序未变;读侧形状只管自有键,置 0 无害)
+        vm.movImm(VReg.V1, 0);
+        vm.store(VReg.V2, OBJECT_SHAPE_OFFSET, VReg.V1);
 
         vm.label("_object_setPrototypeOf_done");
         vm.mov(VReg.RET, VReg.A0); // 返回原始装箱 obj
@@ -3942,6 +3952,9 @@ export class ObjectGenerator {
         vm.store(VReg.SP, 0, VReg.V0);
         vm.jmp("_ono_pb_scan");
         vm.label("_ono_pb_done");
+        // [A2] 整数键重排:键序改变,形状失效置 0
+        vm.movImm(VReg.V0, 0);
+        vm.store(VReg.S0, OBJECT_SHAPE_OFFSET, VReg.V0);
         // 重指 props_ptr(及 flags_ptr 若重排了 flags),记忆屏障
         vm.load(VReg.V0, VReg.SP, 24); // newProps
         vm.store(VReg.S0, OBJECT_PROPS_PTR_OFFSET, VReg.V0);

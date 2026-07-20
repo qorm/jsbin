@@ -283,6 +283,28 @@ export const DataStructureCompiler = {
             else g.setter = p.value;
         }
 
+        // [A2] 静态形状资格:全静态数据键(无 spread/访问器/计算键/重名/__proto__)→
+        // 形状描述符仅记 key_count(IC 做地址身份比较);声明序即 props 插入序(逐一
+        // _object_define 追加),故 count 必等 key_count。不合格留 null(形状恒 0)。
+        let literalShapeKeyCount = null;
+        if (spreadCount === 0 && accessorGroups === null) {
+            const seenKeys = new Set();
+            let shapeN = 0, shapeEligible = true;
+            for (const p of props) {
+                if (!p) continue;
+                if (p.computed || !p.key || !p.value) { shapeEligible = false; break; }
+                if (p.kind === "get" || p.kind === "set") { shapeEligible = false; break; }
+                let skn = null;
+                if (p.key.type === "Identifier") skn = p.key.name;
+                else if (p.key.type === "Literal" || p.key.type === "StringLiteral" ||
+                         p.key.type === "NumericLiteral") skn = String(p.key.value);
+                if (skn === null || skn === "__proto__" || seenKeys.has(skn)) { shapeEligible = false; break; }
+                seenKeys.add(skn);
+                shapeN++;
+            }
+            if (shapeEligible) literalShapeKeyCount = shapeN;
+        }
+
         // 填充属性：_object_set(obj, key, value)
         for (let i = 0; i < count; i++) {
             const prop = props[i];
@@ -420,6 +442,18 @@ export const DataStructureCompiler = {
             // Box the property key label as a JSValue string (TAG_STRING_BASE = 0x7FFC...)
             this.vm.call("_tag_str_a1"); // key box->helper
             this.vm.call("_object_define");
+        }
+
+        // [A2] 赋静态形状:描述符地址写入 shape_ptr@48。此刻全部 _object_define
+        // 已按声明序追加完毕,count == key_count(资格扫描排除计算键/访问器/spread/
+        // 重名/__proto__);后续改键站点会把形状置 0,IC 键自验证作安全网。
+        if (literalShapeKeyCount !== null) {
+            const shapeLabel = this.ctx.newLabel("shape_lit");
+            this.asm.addDataLabel(shapeLabel);
+            this.asm.addDataQword(literalShapeKeyCount);
+            this.vm.load(VReg.V0, VReg.FP, objOffset);
+            this.vm.lea(VReg.V1, shapeLabel);
+            this.vm.store(VReg.V0, 48, VReg.V1);
         }
 
         // 将原始指针装箱为 JSValue 对象

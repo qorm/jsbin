@@ -932,6 +932,59 @@ export const ExpressionCompiler = {
      *   +8: constructor 地址
      *   +16: prototype 对象地址
      */
+    // [A2] 类实例静态形状:解析 ClassDeclaration 计算实例键数(继承链展平),
+    // 合格则发射/复用形状描述符(内容仅 key_count——IC 只做地址身份比较)。
+    // 不合格(类未注册/表达式父类/链断裂/环)返回 null → 不赋形状(shape 恒 0)。
+    _classShapeSite(className) {
+        if (!this._shapeClsMemo) this._shapeClsMemo = new Map();
+        const cls = this.ctx.getFunction && this.ctx.getFunction(className);
+        const memo = this._shapeClsMemo.get(className);
+        if (memo && memo.node === cls) return memo.site;
+        const keyCount = this._classShapeKeyCount(cls, {}, new Set());
+        let site = null;
+        if (keyCount !== null) {
+            const label = `_shape_cls_${String(className).replace(/[^A-Za-z0-9_]/g, "_")}__${this.nextLabelId()}`;
+            this.asm.addDataLabel(label);
+            this.asm.addDataQword(keyCount);
+            site = { label: label, keyCount: keyCount };
+        }
+        this._shapeClsMemo.set(className, { node: cls, site: site });
+        return site;
+    },
+
+    // 实例键数 = 链上公有静态名(重名去重:子类遮蔽父类字段只占一键)
+    //          + 私有字段(带 initializer 才建键,mangle 前缀保证跨类不撞)
+    //          + 计算键字段(带 initializer;键名未知但计数确定)。
+    // 与 emitCtorFieldInits 的建键规则严格一致;无 initializer 字段不建键。
+    _classShapeKeyCount(cls, seen, pubNames) {
+        if (!cls || cls.type !== "ClassDeclaration" || !Array.isArray(cls.body)) return null;
+        const idName = cls.id && cls.id.name;
+        if (idName) { if (seen[idName]) return null; seen[idName] = true; }
+        let own = 0;
+        const pubBefore = pubNames.size;
+        for (const member of cls.body) {
+            if (member.type !== "PropertyDefinition" || member.static) continue;
+            if (!member.value) continue; // 无 initializer 不建键
+            if (member.key && member.key.type === "PrivateIdentifier") { own++; continue; }
+            const cfRuntimeKey = member.computed && member.key &&
+                member.key.type !== "Literal" && member.key.type !== "StringLiteral" &&
+                member.key.type !== "NumericLiteral";
+            if (cfRuntimeKey) { own++; continue; } // 计算键:计数确定,键名运行时
+            const nm = (member.key && (member.key.name || member.key.value));
+            if (nm == null) continue; // 与 emitCtorFieldInits 的 continue 一致
+            pubNames.add(String(nm));
+        }
+        own += pubNames.size - pubBefore;
+        if (cls.superClass) {
+            if (cls.superClass.type !== "Identifier") return null; // 表达式父类:键数不可知
+            const scls = this.ctx.getFunction && this.ctx.getFunction(cls.superClass.name);
+            const superCount = this._classShapeKeyCount(scls, seen, pubNames);
+            if (superCount === null) return null;
+            own += superCount;
+        }
+        return own;
+    },
+
     compileUserClassNew(className, args) {
         const offset = this.ctx.getLocal(className);
         const globalLabel = this.ctx.getMainCapturedVar(className);
@@ -1036,6 +1089,19 @@ export const ExpressionCompiler = {
             // 间接调用构造函数
             this.vm.callIndirect(VReg.S2);
 
+            // [A2] 类实例形状:ctor 返回后校验实例 count==key_count 才赋形状描述符
+            // (ctor 体加/删声明外键则不符,留 0 安全退化;IC 键自验证兜底)。
+            const clsShape = this._classShapeSite(className);
+            if (clsShape) {
+                const unewNoShpL = this.ctx.newLabel("unew_noshape");
+                this.vm.load(VReg.V0, VReg.S0, 8);
+                this.vm.cmpImm(VReg.V0, clsShape.keyCount);
+                this.vm.jne(unewNoShpL);
+                this.vm.lea(VReg.V0, clsShape.label);
+                this.vm.store(VReg.S0, 48, VReg.V0);
+                this.vm.label(unewNoShpL);
+            }
+
             // 返回新对象（标记为 JS 对象）
             // JSValue = (ptr & 0x0000ffffffffffff) | 0x7ffd000000000000
             this.vm.movImm64(VReg.V1, 0x7ffd000000000000n);
@@ -1079,6 +1145,17 @@ export const ExpressionCompiler = {
                 }
                 this.vm.mov(VReg.A0, VReg.S0);
                 this.vm.callIndirect(VReg.S2);
+                // [A2] 类实例形状(同主分支):count==key_count 校验后赋形状描述符
+                const clsShape2 = this._classShapeSite(className);
+                if (clsShape2) {
+                    const unewNoShpL2 = this.ctx.newLabel("unew_noshape");
+                    this.vm.load(VReg.V0, VReg.S0, 8);
+                    this.vm.cmpImm(VReg.V0, clsShape2.keyCount);
+                    this.vm.jne(unewNoShpL2);
+                    this.vm.lea(VReg.V0, clsShape2.label);
+                    this.vm.store(VReg.S0, 48, VReg.V0);
+                    this.vm.label(unewNoShpL2);
+                }
                 this.vm.movImm64(VReg.V1, 0x7ffd000000000000n);
                 this.vm.or(VReg.RET, VReg.S0, VReg.V1);
                 return;
