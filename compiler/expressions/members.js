@@ -157,11 +157,12 @@ export const MemberCompiler = {
         this.vm.or(destReg, destReg, VReg.V1);
     },
 
-    // [P2] 属性读站点缓存(融合 getter)。前置:RET = 已求值的 boxed 对象。
+    // [P2/A2] 属性读站点缓存(融合 getter)。前置:RET = 已求值的 boxed 对象。
     // 发射后:RET = 属性值(getter 已解)。站点只发一个 call(_object_get_ic
     // = _object_get + _maybe_getter 融合),比旧形态(push/双 call/pop)更少的
-    // op 与字节;站点数据段 8B 槽存"上次命中的自有属性下标",运行时快路用
-    // props[idx].key 与站点驻留 key 常量单条 cmp 自验证——永不需失效。
+    // op 与字节;站点数据段 16B 槽 {cached_shape@0, cached_index@8}:形状模式
+    // (形状相等 ⟹ 键序相等,省 count/props 防御)与无形状 legacy 模式(缓存下标
+    // + 键自验证)双模,慢路回填两字段——永不需失效。
     // (首版逐站点内联快路实测:产物 +54%、发射成本 +3.4s,已回退为出线式。)
     // NO_IC=1 编译时禁用(对拍口;env 仅 node 驱动构建可见,编译产物内恒空)。
     emitObjectGetIC(propName) {
@@ -180,8 +181,10 @@ export const MemberCompiler = {
             return;
         }
         const siteLabel = this.ctx.newLabel("icg_site");
-        // 站点槽:初值取大于任何 count 的下标 → 首次必落慢路回填
+        // 站点槽 16B:{cached_shape=0(无形状,legacy 模式), cached_index=大于任何
+        // count 的初值} → 首次必落慢路回填
         this.asm.addDataLabel(siteLabel);
+        this.asm.addDataQword(0);
         this.asm.addDataQword(0x7fffffff);
         vm.mov(VReg.A0, VReg.RET);
         this.emitBoxedStringKey(propName, VReg.A1);

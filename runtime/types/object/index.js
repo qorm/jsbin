@@ -1055,14 +1055,15 @@ export class ObjectGenerator {
         vm.epilogue([VReg.S0, VReg.S1], 16);
     }
 
-    // [P2] 属性读站点缓存(融合 getter 解包)
+    // [P2/A2] 属性读站点缓存(融合 getter 解包)
     // _object_get_ic(obj, key, site) -> value(getter 已解)
-    // site 指向该访问点的数据段 8B 槽(缓存"上次命中的自有属性下标")。
-    // 语义 = _object_get + _maybe_getter 融合;站点只发一个 call。
-    // 入口是零 prologue 快路:纯 V 寄存器守卫 + 缓存下标验证
-    // (props[idx].key 与站点 key 单条 cmp,键指针相等即正确性证明,永不需失效),
-    // 命中直接 ret;值为裸堆指针(可能 getter 标记)时尾跳 _maybe_getter。
-    // 任何守卫不满足落 framed 慢路:自有指针扫命中回填站点,否则委托 _object_get。
+    // site 指向该访问点的数据段 16B 槽 {cached_shape@0, cached_index@8}:
+    // cached_shape==0 为无形状 legacy 模式(缓存下标 + count/props 防御 + 键自验证,
+    // 同旧 8B 语义);非 0 为形状模式(形状指针相等 ⟹ 键序相等,count/props 防御省去,
+    // v1 保留键自验证单 cmp)。语义 = _object_get + _maybe_getter 融合;站点只发一个 call。
+    // 入口是零 prologue 快路:纯 V 寄存器守卫;命中直接 ret;值为裸堆指针(可能
+    // getter 标记)时尾跳 _maybe_getter。
+    // 任何守卫不满足落 framed 慢路:自有指针扫命中回填站点(形状+下标),否则委托 _object_get。
     // x64 寄存器审计:A1=RSI=V7、A2=RDX=V2 为只读入参,快路 scratch 限 V0/V1/V3/V4。
     generateObjectGetIC() {
         const vm = this.vm;
@@ -1082,7 +1083,15 @@ export class ObjectGenerator {
         vm.loadByte(VReg.V1, VReg.V4, 0);
         vm.cmpImm(VReg.V1, TYPE_OBJECT);
         vm.jne("_ogic_slow");
-        vm.load(VReg.V3, VReg.A2, 0); // 缓存下标
+        // [A2] 站点槽 16B {cached_shape@0, cached_index@8}。cached_shape==0 →
+        // 无形状 legacy 下标路径(语义与旧 IC 逐字节一致);非 0 → 形状路径:
+        // 形状指针相等 ⟹ 键序静态相等 ⟹ count/props 判空可省(改键站点已置
+        // shape=0 保证不变式;v1 仍保留键自验证单 cmp 作安全网,A3 评估消除)。
+        vm.load(VReg.V3, VReg.A2, 0); // cached shape
+        vm.cmpImm(VReg.V3, 0);
+        vm.jne("_ogic_shaped");
+        // ---- legacy 下标路径(无形状对象,同旧快路) ----
+        vm.load(VReg.V3, VReg.A2, 8); // 缓存下标
         vm.load(VReg.V1, VReg.V4, 8); // count
         vm.cmp(VReg.V3, VReg.V1);
         vm.jge("_ogic_slow");
@@ -1093,6 +1102,20 @@ export class ObjectGenerator {
         vm.add(VReg.V0, VReg.V0, VReg.V1); // 属性地址
         vm.load(VReg.V1, VReg.V0, 0);
         vm.cmp(VReg.V1, VReg.A1); // 键自验证
+        vm.jne("_ogic_slow");
+        vm.load(VReg.RET, VReg.V0, 8); // 命中:value
+        vm.jmp("_ogic_getter_dispatch");
+        // ---- 形状路径(命中省 count/props 防御) ----
+        vm.label("_ogic_shaped");
+        vm.load(VReg.V1, VReg.V4, OBJECT_SHAPE_OFFSET); // obj shape
+        vm.cmp(VReg.V1, VReg.V3);
+        vm.jne("_ogic_slow"); // 形状不符 → 慢路重学习
+        vm.load(VReg.V3, VReg.A2, 8); // cached index
+        vm.load(VReg.V0, VReg.V4, OBJECT_PROPS_PTR_OFFSET);
+        vm.shlImm(VReg.V1, VReg.V3, 4);
+        vm.add(VReg.V0, VReg.V0, VReg.V1);
+        vm.load(VReg.V1, VReg.V0, 0);
+        vm.cmp(VReg.V1, VReg.A1); // 键自验证(v1 保留)
         vm.jne("_ogic_slow");
         vm.load(VReg.RET, VReg.V0, 8); // 命中:value
         vm.label("_ogic_getter_dispatch");
@@ -1151,7 +1174,10 @@ export class ObjectGenerator {
         vm.label("_ogic_slow_hit");
         vm.sub(VReg.V1, VReg.V0, VReg.S3);
         vm.shrImm(VReg.V1, VReg.V1, 4); // 下标
-        vm.store(VReg.S2, 0, VReg.V1); // 回填站点槽
+        vm.store(VReg.S2, 8, VReg.V1); // 回填站点:下标@8
+        // [A2] 回填形状@0(V2=裸对象;0=无形状 → 该站点后续走 legacy 路径)
+        vm.load(VReg.V3, VReg.V2, OBJECT_SHAPE_OFFSET);
+        vm.store(VReg.S2, 0, VReg.V3);
         vm.load(VReg.RET, VReg.V0, 8);
         vm.jmp("_ogic_slow_getter");
 
