@@ -739,21 +739,12 @@ export const FunctionCompiler = {
                 this.vm.jeq(bLbls[i]);
             }
         }
-        // 非内建 → 用户方法（obj 在 RET 且栈顶）
-        // x64: V0==RET==RAX，上面 and(V0,RET,..)+loadByte 已把 RET 毁掉，从栈顶重载 obj
+        // 非内建 → 用户方法(obj 在 RET 且栈顶)
+        // [A3.5] 用户方法查找走 24B 形状 IC(自有/直接原型双模,getter 已融合);
+        // RET 恢复为 obj(x64 上 RET 已被上方类型判别毁掉,统一从栈顶重载)。
         const pn = this.getMemberPropertyName ? this.getMemberPropertyName(prop) : (prop.name || prop.value);
-        const pLbl = this.asm.addString(pn);
-        if (this.vm.backend.name === "x64") {
-            this.vm.load(VReg.A0, VReg.SP, 0);
-        } else {
-            this.vm.mov(VReg.A0, VReg.RET);
-        }
-        this.vm.lea(VReg.A1, pLbl);
-        this.vm.call("_tag_str_a1"); // key box->helper
-        this.vm.call("_object_get");
-        this.vm.mov(VReg.A0, VReg.RET);
-        this.vm.load(VReg.A1, VReg.SP, 0);
-        this.vm.call("_maybe_getter");
+        this.vm.load(VReg.RET, VReg.SP, 0);
+        this.emitObjectGetIC(pn);
         this.vm.mov(VReg.V6, VReg.RET);
         this.vm.pop(VReg.V5);
         this.compileMethodCall(VReg.V6, VReg.V5, args);
@@ -4803,16 +4794,10 @@ export const FunctionCompiler = {
                 return;
             }
             const propLabel = this.asm.addString(propName);
-            this.vm.mov(VReg.A0, VReg.RET);
-            this.vm.lea(VReg.A1, propLabel);
-            // Box the property key label as a JSValue string (TAG_STRING_BASE = 0x7FFC...)
-            this.vm.call("_tag_str_a1"); // key box->helper
-            this.vm.call("_object_get"); // 获取方法 -> RET
-
-            // 属性值可能是 getter（返回可调用对象），先解 getter 再调用
-            this.vm.mov(VReg.A0, VReg.RET);
-            this.vm.load(VReg.A1, VReg.SP, 0); // 栈顶是 obj (this)，不弹出
-            this.vm.call("_maybe_getter");
+            // [A3.5] 方法查找走 24B 形状 IC(自有/直接原型双模,getter 已融合)——
+            // 此前裸 _object_get + _maybe_getter,每次全帧查找 + 原型链递归。
+            // (propLabel 保留:addString 驻留副作用维持键注册序,与旧发射一致。)
+            this.emitObjectGetIC(propName);
 
             this.vm.mov(VReg.V6, VReg.RET); // 方法指针/闭包
             this.vm.pop(VReg.V5); // 恢复 obj (this)

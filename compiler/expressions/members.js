@@ -181,9 +181,10 @@ export const MemberCompiler = {
             return;
         }
         const siteLabel = this.ctx.newLabel("icg_site");
-        // 站点槽 16B:{cached_shape=0(无形状,legacy 模式), cached_index=大于任何
-        // count 的初值} → 首次必落慢路回填
+        // [A3.5] 站点槽 24B:{obj_shape=0(legacy 模式), holder=0(占位),
+        // index=大于任何 count 的初值} → 首次必落慢路回填
         this.asm.addDataLabel(siteLabel);
+        this.asm.addDataQword(0);
         this.asm.addDataQword(0);
         this.asm.addDataQword(0x7fffffff);
         vm.mov(VReg.A0, VReg.RET);

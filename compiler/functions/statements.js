@@ -2335,6 +2335,8 @@ export const StatementCompiler = {
                 // 设置字段: this[fieldName] = value
                 this.vm.load(VReg.A0, VReg.FP, thisOffset);
                 this.vm.lea(VReg.A1, this.addStringConstant(fieldName));
+                // [A3.5-fix] 键装箱(0x7FFC 驻留)——实例字段键同原型方法键一并转正
+                this.vm.call("_tag_str_a1");
                 this.vm.mov(VReg.A2, VReg.V1);
                 this.vm.call("_object_define");
             }
@@ -2352,6 +2354,8 @@ export const StatementCompiler = {
                 this.vm.mov(VReg.V1, VReg.RET);
                 this.vm.load(VReg.A0, VReg.FP, thisOffset);
                 this.vm.lea(VReg.A1, this.addStringConstant("#" + className + privateName));
+                // [A3.5-fix] 键装箱(0x7FFC 驻留)
+                this.vm.call("_tag_str_a1");
                 this.vm.mov(VReg.A2, VReg.V1);
                 this.vm.call("_object_define");
             }
@@ -2748,6 +2752,9 @@ export const StatementCompiler = {
         // **裸 classinfo 指针**(见 members.js 顶层/局部类值路径),故 constructor 存裸 S0。
         this.vm.mov(VReg.A0, VReg.S1);
         this.vm.lea(VReg.A1, this.addStringConstant("constructor"));
+        // [A3.5-fix] 键装箱(0x7FFC 驻留)——此前裸指针入键,原型键与读侧驻留装箱键
+        // 指针比较永不命中(getOwnPropertyNames 打垃圾、原型 IC/指针扫失效)。
+        this.vm.call("_tag_str_a1");
         this.vm.mov(VReg.A2, VReg.S0);
         this.vm.call("_object_define");
 
@@ -2819,6 +2826,8 @@ export const StatementCompiler = {
                 this.vm.pop(VReg.S0);
                 this.vm.mov(VReg.A0, VReg.S0);
                 this.vm.lea(VReg.A1, this.addStringConstant(fieldName));
+                // [A3.5-fix] 键装箱(0x7FFC 驻留)
+                this.vm.call("_tag_str_a1");
                 this.vm.mov(VReg.A2, VReg.V1);
                 this.vm.call("_object_define");
             }
@@ -3009,6 +3018,8 @@ export const StatementCompiler = {
                 } else {
                     this.vm.mov(VReg.A0, targetReg);
                     this.vm.lea(VReg.A1, this.addStringConstant(defineKey));
+                    // [A3.5-fix] 键装箱(0x7FFC 驻留),同 constructor/方法键
+                    this.vm.call("_tag_str_a1");
                 }
                 this.vm.mov(VReg.A2, VReg.V2);
                 this.vm.call("_object_define");
@@ -3039,6 +3050,8 @@ export const StatementCompiler = {
             }
             this.vm.mov(VReg.A0, targetReg);
             this.vm.lea(VReg.A1, this.addStringConstant(defineKey));
+            // [A3.5-fix] 键装箱(0x7FFC 驻留),同 constructor/访问器键
+            this.vm.call("_tag_str_a1");
             // 将函数地址标记为 JS 函数值（TAG_FUNCTION = 0x7FFF）
             this.vm.lea(VReg.A2, methodLabel);
             this.vm.movImm64(VReg.V0, 0x7fff000000000000n);

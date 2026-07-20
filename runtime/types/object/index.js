@@ -1055,15 +1055,17 @@ export class ObjectGenerator {
         vm.epilogue([VReg.S0, VReg.S1], 16);
     }
 
-    // [P2/A2] 属性读站点缓存(融合 getter 解包)
+    // [P2/A3.5] 属性读站点缓存(融合 getter 解包)
     // _object_get_ic(obj, key, site) -> value(getter 已解)
-    // site 指向该访问点的数据段 16B 槽 {cached_shape@0, cached_index@8}:
-    // cached_shape==0 为无形状 legacy 模式(缓存下标 + count/props 防御 + 键自验证,
-    // 同旧 8B 语义);非 0 为形状模式(形状指针相等 ⟹ 键序相等,count/props 防御省去,
-    // v1 保留键自验证单 cmp)。语义 = _object_get + _maybe_getter 融合;站点只发一个 call。
+    // site 指向该访问点的数据段 24B 槽 {obj_shape@0, holder@8, index@16}:
+    // obj_shape==0 为无形状 legacy 模式(缓存下标 + count/props 防御 + 键自验证);
+    // 非 0 为形状模式——holder==0 自有键(形状相等 ⟹ 键序相等,count/props 防御省),
+    // holder!=0 直接原型键(原型指针相等 + 键自验证,慢路在自有 miss 后扫直接原型
+    // 回填;深原型链不缓存落委托)。键自验证单 cmp 全程保留作安全网。
+    // 语义 = _object_get + _maybe_getter 融合;站点只发一个 call。
     // 入口是零 prologue 快路:纯 V 寄存器守卫;命中直接 ret;值为裸堆指针(可能
     // getter 标记)时尾跳 _maybe_getter。
-    // 任何守卫不满足落 framed 慢路:自有指针扫命中回填站点(形状+下标),否则委托 _object_get。
+    // 任何守卫不满足落 framed 慢路:自有/直接原型指针扫命中回填站点,否则委托 _object_get。
     // x64 寄存器审计:A1=RSI=V7、A2=RDX=V2 为只读入参,快路 scratch 限 V0/V1/V3/V4。
     generateObjectGetIC() {
         const vm = this.vm;
@@ -1083,15 +1085,16 @@ export class ObjectGenerator {
         vm.loadByte(VReg.V1, VReg.V4, 0);
         vm.cmpImm(VReg.V1, TYPE_OBJECT);
         vm.jne("_ogic_slow");
-        // [A2] 站点槽 16B {cached_shape@0, cached_index@8}。cached_shape==0 →
-        // 无形状 legacy 下标路径(语义与旧 IC 逐字节一致);非 0 → 形状路径:
-        // 形状指针相等 ⟹ 键序静态相等 ⟹ count/props 判空可省(改键站点已置
-        // shape=0 保证不变式;v1 仍保留键自验证单 cmp 作安全网,A3 评估消除)。
-        vm.load(VReg.V3, VReg.A2, 0); // cached shape
+        // [A3.5] 站点槽 24B {obj_shape@0, holder@8, index@16}。obj_shape==0 →
+        // 无形状 legacy 下标路径(同旧语义);非 0 → 形状路径:holder==0 为自有键
+        // (形状相等 ⟹ 键序相等,省 count/props 防御),holder!=0 为直接原型键
+        // (原型指针相等 + 键自验证;改值型猴子补丁仍能读到最新值,改键/改型
+        // 经形状置 0 与键验证双兜底)。键自验证单 cmp 全程保留(实测消除零增益)。
+        vm.load(VReg.V3, VReg.A2, 0); // cached obj_shape
         vm.cmpImm(VReg.V3, 0);
         vm.jne("_ogic_shaped");
         // ---- legacy 下标路径(无形状对象,同旧快路) ----
-        vm.load(VReg.V3, VReg.A2, 8); // 缓存下标
+        vm.load(VReg.V3, VReg.A2, 16); // 缓存下标@16
         vm.load(VReg.V1, VReg.V4, 8); // count
         vm.cmp(VReg.V3, VReg.V1);
         vm.jge("_ogic_slow");
@@ -1110,12 +1113,30 @@ export class ObjectGenerator {
         vm.load(VReg.V1, VReg.V4, OBJECT_SHAPE_OFFSET); // obj shape
         vm.cmp(VReg.V1, VReg.V3);
         vm.jne("_ogic_slow"); // 形状不符 → 慢路重学习
-        vm.load(VReg.V3, VReg.A2, 8); // cached index
+        vm.load(VReg.V3, VReg.A2, 8); // holder(0=自有键)
+        vm.cmpImm(VReg.V3, 0);
+        vm.jne("_ogic_proto");
+        // -- 自有键 --
+        vm.load(VReg.V3, VReg.A2, 16); // cached index
         vm.load(VReg.V0, VReg.V4, OBJECT_PROPS_PTR_OFFSET);
         vm.shlImm(VReg.V1, VReg.V3, 4);
         vm.add(VReg.V0, VReg.V0, VReg.V1);
         vm.load(VReg.V1, VReg.V0, 0);
-        vm.cmp(VReg.V1, VReg.A1); // 键自验证(v1 保留;实测消除零增益,保留作安全网)
+        vm.cmp(VReg.V1, VReg.A1); // 键自验证
+        vm.jne("_ogic_slow");
+        vm.load(VReg.RET, VReg.V0, 8); // 命中:value
+        vm.jmp("_ogic_getter_dispatch");
+        // -- 直接原型键(形状命中后:holder 指针相等 + 键自验证) --
+        vm.label("_ogic_proto");
+        vm.load(VReg.V1, VReg.V4, 16); // obj.__proto__
+        vm.cmp(VReg.V3, VReg.V1);
+        vm.jne("_ogic_slow"); // 原型已换(改 proto 本就会置形状 0,此为双保险)
+        vm.load(VReg.V3, VReg.A2, 16); // cached index
+        vm.load(VReg.V0, VReg.V1, OBJECT_PROPS_PTR_OFFSET); // holder.props
+        vm.shlImm(VReg.V3, VReg.V3, 4);
+        vm.add(VReg.V0, VReg.V0, VReg.V3);
+        vm.load(VReg.V3, VReg.V0, 0);
+        vm.cmp(VReg.V3, VReg.A1); // 键自验证(holder 键序变化兜底)
         vm.jne("_ogic_slow");
         vm.load(VReg.RET, VReg.V0, 8); // 命中:value
         vm.label("_ogic_getter_dispatch");
@@ -1164,7 +1185,7 @@ export class ObjectGenerator {
         vm.add(VReg.V3, VReg.S3, VReg.V1); // 终点
         vm.label("_ogic_slow_scan");
         vm.cmp(VReg.V0, VReg.V3);
-        vm.jge("_ogic_slow_delegate");
+        vm.jge("_ogic_slow_proto"); // 自有 miss → 试直接原型缓存(A3.5)
         vm.load(VReg.V1, VReg.V0, 0);
         vm.cmp(VReg.V1, VReg.S1);
         vm.jeq("_ogic_slow_hit");
@@ -1174,10 +1195,56 @@ export class ObjectGenerator {
         vm.label("_ogic_slow_hit");
         vm.sub(VReg.V1, VReg.V0, VReg.S3);
         vm.shrImm(VReg.V1, VReg.V1, 4); // 下标
-        vm.store(VReg.S2, 8, VReg.V1); // 回填站点:下标@8
+        vm.store(VReg.S2, 16, VReg.V1); // 回填站点:下标@16
+        vm.movImm(VReg.V3, 0);
+        vm.store(VReg.S2, 8, VReg.V3); // holder@8 = 0(自有键)
         // [A2] 回填形状@0(V2=裸对象;0=无形状 → 该站点后续走 legacy 路径)
         vm.load(VReg.V3, VReg.V2, OBJECT_SHAPE_OFFSET);
         vm.store(VReg.S2, 0, VReg.V3);
+        vm.load(VReg.RET, VReg.V0, 8);
+        vm.jmp("_ogic_slow_getter");
+
+        // ---- [A3.5] 直接原型键:自有 miss 后,仅形状对象扫直接原型并缓存 ----
+        // (深原型链 v1 不缓存,落委托;proto 上改值仍能读到——快路每次现读 value)
+        vm.label("_ogic_slow_proto");
+        vm.load(VReg.V1, VReg.V2, OBJECT_SHAPE_OFFSET);
+        vm.cmpImm(VReg.V1, 0);
+        vm.jeq("_ogic_slow_delegate"); // 无形状对象不缓存原型命中
+        vm.load(VReg.V1, VReg.V2, 16); // proto
+        vm.cmpImm(VReg.V1, 0);
+        vm.jeq("_ogic_slow_delegate");
+        // proto 恒为 0 或堆对象裸指针(对象头域);floor + type 守卫
+        vm.shrImm(VReg.V3, VReg.V1, floorShift);
+        vm.cmpImm(VReg.V3, 0);
+        vm.jeq("_ogic_slow_delegate");
+        vm.loadByte(VReg.V3, VReg.V1, 0);
+        vm.cmpImm(VReg.V3, TYPE_OBJECT);
+        vm.jne("_ogic_slow_delegate");
+        vm.mov(VReg.S3, VReg.V1); // S3 = proto(自有扫已毕,S3 复用)
+        vm.load(VReg.V4, VReg.S3, OBJECT_PROPS_PTR_OFFSET);
+        vm.cmpImm(VReg.V4, 0);
+        vm.jeq("_ogic_slow_delegate");
+        vm.load(VReg.V3, VReg.S3, 8); // count
+        vm.mov(VReg.V0, VReg.V4); // 游标
+        vm.shlImm(VReg.V3, VReg.V3, 4);
+        vm.add(VReg.V3, VReg.V4, VReg.V3); // 终点
+        vm.label("_ogic_pscan");
+        vm.cmp(VReg.V0, VReg.V3);
+        vm.jge("_ogic_slow_delegate");
+        vm.load(VReg.V1, VReg.V0, 0);
+        vm.cmp(VReg.V1, VReg.S1);
+        vm.jeq("_ogic_phit");
+        vm.addImm(VReg.V0, VReg.V0, 16);
+        vm.jmp("_ogic_pscan");
+
+        vm.label("_ogic_phit");
+        vm.sub(VReg.V1, VReg.V0, VReg.V4);
+        vm.shrImm(VReg.V1, VReg.V1, 4); // 下标
+        vm.store(VReg.S2, 16, VReg.V1); // 回填站点:下标@16
+        vm.store(VReg.S2, 8, VReg.S3); // holder@8 = proto(堆指针;站点区属 GC 根,
+        // 原型本就近永生,可接受)
+        vm.load(VReg.V3, VReg.V2, OBJECT_SHAPE_OFFSET);
+        vm.store(VReg.S2, 0, VReg.V3); // obj shape@0(≠0,已守卫)
         vm.load(VReg.RET, VReg.V0, 8);
         vm.jmp("_ogic_slow_getter");
 

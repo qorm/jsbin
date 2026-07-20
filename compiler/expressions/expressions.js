@@ -953,9 +953,10 @@ export const ExpressionCompiler = {
     },
 
     // 实例键数 = 链上公有静态名(重名去重:子类遮蔽父类字段只占一键)
-    //          + 私有字段(带 initializer 才建键,mangle 前缀保证跨类不撞)
+    //          + 私有字段/构造体私有赋值(带 initializer 或赋值语句才建键,mangle 前缀不撞)
     //          + 计算键字段(带 initializer;键名未知但计数确定)。
-    // 与 emitCtorFieldInits 的建键规则严格一致;无 initializer 字段不建键。
+    // 覆盖两种建键形态:字段声明(emitCtorFieldInits 规则)与构造体顶层 this.x= 赋值
+    // (super() 之后;条件块内赋值不扫,count 运行时校验会正确拒绝)。
     _classShapeKeyCount(cls, seen, pubNames) {
         if (!cls || cls.type !== "ClassDeclaration" || !Array.isArray(cls.body)) return null;
         const idName = cls.id && cls.id.name;
@@ -973,6 +974,25 @@ export const ExpressionCompiler = {
             const nm = (member.key && (member.key.name || member.key.value));
             if (nm == null) continue; // 与 emitCtorFieldInits 的 continue 一致
             pubNames.add(String(nm));
+        }
+        let ctor = null;
+        for (const member of cls.body) {
+            if (member.type === "MethodDefinition" && member.kind === "constructor") { ctor = member; break; }
+        }
+        if (ctor && ctor.value && ctor.value.body && Array.isArray(ctor.value.body.body)) {
+            let afterSuper = !cls.superClass;
+            for (const st of ctor.value.body.body) {
+                if (!st || st.type !== "ExpressionStatement" || !st.expression) continue;
+                const e = st.expression;
+                if (e.type === "CallExpression" && e.callee && e.callee.type === "SuperExpression") { afterSuper = true; continue; }
+                if (!afterSuper) continue;
+                if (e.type === "AssignmentExpression" && e.operator === "=" &&
+                    e.left && e.left.type === "MemberExpression" && !e.left.computed &&
+                    e.left.object && e.left.object.type === "ThisExpression") {
+                    if (e.left.property.type === "Identifier") pubNames.add(e.left.property.name);
+                    else if (e.left.property.type === "PrivateIdentifier") own++;
+                }
+            }
         }
         own += pubNames.size - pubBefore;
         if (cls.superClass) {

@@ -1,6 +1,6 @@
 # asm.js test262 conformance report
 
-_Generated 2026-07-20T08:23:12.230Z — target macos-arm64_
+_Generated 2026-07-20T12:14:07.372Z — target macos-arm64_
 
 ## Headline
 
@@ -14,9 +14,9 @@ Of 33776 discovered test files in the selected dirs, 1466 were excluded up front
 | class | count | % of run |
 |-------|------:|---------:|
 | PASS         | 1328 | 20.55 |
-| FAIL         | 4057 | 62.78 |
+| FAIL         | 4056 | 62.77 |
 | COMPILE_FAIL | 601 | 9.30 |
-| CRASH        | 476 | 7.37 |
+| CRASH        | 477 | 7.38 |
 | **run**      | **6462** | 100 |
 
 ## By area
@@ -35,7 +35,7 @@ Of 33776 discovered test files in the selected dirs, 1466 were excluded up front
 | built-ins/Set | 76 | 20 | 46 | 0 | 10 | 26.3 |
 | built-ins/String | 244 | 49 | 194 | 0 | 1 | 20.1 |
 | built-ins/Symbol | 15 | 3 | 12 | 0 | 0 | 20.0 |
-| built-ins/TypedArray | 288 | 10 | 222 | 0 | 56 | 3.5 |
+| built-ins/TypedArray | 288 | 10 | 221 | 0 | 57 | 3.5 |
 | language/expressions | 2005 | 488 | 1183 | 258 | 76 | 24.3 |
 | language/statements | 1822 | 370 | 1064 | 335 | 53 | 20.3 |
 
@@ -64,9 +64,9 @@ Excluded-by-feature detail:
 - **535×** FAIL: async ($DONE not signalled / promise rejected)
 - **528×** FAIL: property-descriptor reflection (verifyProperty: length/name/writable/enumerable/configurable)
 - **429×** FAIL: negative test wrong outcome (phase=parse)
-- **413×** CRASH: run signal SIGSEGV
+- **414×** CRASH: run signal SIGSEGV
 - **146×** FAIL: TypedArray/ArrayBuffer semantics
-- **105×** FAIL: array contents mismatch (compareArray)
+- **104×** FAIL: array contents mismatch (compareArray)
 - **50×** FAIL: constructor-ness reflection (isConstructor / not-a-constructor)
 - **43×** CRASH: run timeout
 - **20×** CRASH: run signal SIGBUS
@@ -123,4 +123,4 @@ mkdir -p .test262-corpus && tar xzf /tmp/t262.tgz -C .test262-corpus --strip-com
 node tests/test262/run.mjs --stride 5 --jobs 8 --target macos-arm64
 ```
 
-_Run wall-clock: 373.9s._
+_Run wall-clock: 395.9s._

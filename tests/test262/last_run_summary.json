@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-20T08:23:12.237Z",
+  "generated": "2026-07-20T12:14:07.381Z",
   "config": {
     "corpus": "/Users/dmy/work/jsbin/.test262-corpus",
     "target": "macos-arm64",
@@ -45,9 +45,9 @@
   "run": 6462,
   "totals": {
     "PASS": 1328,
-    "FAIL": 4057,
+    "FAIL": 4056,
     "COMPILE_FAIL": 601,
-    "CRASH": 476
+    "CRASH": 477
   },
   "passRatePct": 20.55,
   "byArea": {
@@ -125,9 +125,9 @@
     },
     "built-ins/TypedArray": {
       "PASS": 10,
-      "FAIL": 222,
+      "FAIL": 221,
       "COMPILE_FAIL": 0,
-      "CRASH": 56
+      "CRASH": 57
     },
     "language/expressions": {
       "PASS": 488,
@@ -165,7 +165,7 @@
     },
     {
       "pattern": "CRASH: run signal SIGSEGV",
-      "count": 413
+      "count": 414
     },
     {
       "pattern": "FAIL: TypedArray/ArrayBuffer semantics",
@@ -173,7 +173,7 @@
     },
     {
       "pattern": "FAIL: array contents mismatch (compareArray)",
-      "count": 105
+      "count": 104
     },
     {
       "pattern": "FAIL: constructor-ness reflection (isConstructor / not-a-constructor)",
