@@ -2641,14 +2641,15 @@ export const StatementCompiler = {
 
         // ========== 创建类信息对象 ==========
         // 类信息对象采用新对象布局（属性区独立分配、可增长、对象头指针稳定）:
-        //   type@0=FUNCTION(3), count@8, __proto__@16, capacity@24, props_ptr@32
+        //   type@0=FUNCTION(3), count@8, __proto__@16, capacity@24, props_ptr@32,
+        //   flags_ptr@40, shape_ptr@48（头共 56B,与 OBJECT_HEADER_SIZE 一致）
         // 属性数组前两个槽固定为 __ctor__(idx0)、prototype(idx1)，new 表达式经
         // props_ptr 读取: props=[classinfo+32]; ctor=[props+8]; prototype对象=[props+24]。
         // 二者仍是真正的属性（count 从 2 起），故 X.prototype / _object_get 正常；
         // 静态成员随后经 _object_set 追加，超容量自动增长且保序拷贝 __ctor__/prototype。
         const classStaticCap = 2 + staticMethods.length + staticFields.length + 8;
-        // [#61 P2] 对象头 48:type/count/proto/capacity/props_ptr/flags_ptr@40
-        this.vm.movImm(VReg.A0, 48);
+        // [A1] 对象头 56:type/count/proto/capacity/props_ptr/flags_ptr@40/shape_ptr@48
+        this.vm.movImm(VReg.A0, 56);
         this.vm.call("_alloc");
         this.vm.mov(VReg.S0, VReg.RET); // S0 = 类信息对象
         this.vm.movImm(VReg.A0, classStaticCap * 16); // 属性数组
