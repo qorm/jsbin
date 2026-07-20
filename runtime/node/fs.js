@@ -8,9 +8,14 @@ const _proc = __get_process();
 const platform = (_proc && _proc.platform) || "macos";
 const arch = (_proc && _proc.arch) || "arm64";
 
-// File flags
+// File flags —— 按平台取真值:macOS O_CREAT=0x200/O_TRUNC=0x400/O_APPEND=0x8,
+// Linux O_CREAT=0x40/O_TRUNC=0x200/O_APPEND=0x400。此前统一用 Linux 数值:
+// macOS 上 0x241 = O_CREAT|O_WRONLY|O_ASYNC,writeFileSync 实际不带 O_TRUNC,
+// 覆盖写比旧文件短时会残留旧尾巴(gen2 比 gen1 多出页对齐尾零的"布局悬崖"即此)。
 const O_RDONLY = 0, O_WRONLY = 1, O_RDWR = 2;
-const O_CREAT = 0x40, O_TRUNC = 0x200, O_APPEND = 0x400;
+const O_CREAT = platform === "macos" ? 0x200 : 0x40;
+const O_TRUNC = platform === "macos" ? 0x400 : 0x200;
+const O_APPEND = platform === "macos" ? 0x8 : 0x400;
 
 function openFlags(flagStr) {
     if (!flagStr) return O_RDONLY;
@@ -241,11 +246,9 @@ class fs {
     }
 
     static appendFileSync(p, data, enc) {
-        // NOTE: the O_* constants in this file are Linux numeric values. On
-        // macOS, Linux O_APPEND (0x400) collides with macOS O_TRUNC (0x400), so
-        // opening with O_APPEND actually truncated the file (append behaved like
-        // overwrite). Rather than special-case per-OS open flags, append is
-        // implemented portably as read-existing + concatenate + writeFileSync.
+        // NOTE: 本文件的 O_* 常量现按平台取真值(macOS O_APPEND=0x8 可用)。
+        // 追加仍实现为可移植的 read-existing + concatenate + writeFileSync
+        // (writeFileSync 现带真 O_TRUNC,旧内容被完整替换,语义严格正确)。
         // appendFileSync is not on the self-host hot path (the compiler never
         // appends), so this cannot affect the bootstrap fixed point.
         let ds;
