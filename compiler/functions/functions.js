@@ -613,6 +613,11 @@ export const FunctionCompiler = {
     // 守卫语义:精确接收者(局部 v=new X()/字段 f=new X(),类即运行类)无需子类守卫;
     // this 接收者可能是子类实例,须证当前类无已注册覆写子类(预登记全图完备,可证)。
     _devirtualizeCall(obj, methodName, args) {
+        // x64 门(2026-07-19):devirt 直编调用在 x64 自举产物里触发 SIGSEGV(macOS/linux-x64
+        // 自编译全崩;arm64 双目标定点绿,x64 产物 repro 本身正确)。x64 自举本就有存量
+        // 质量债(graceful "Compilation error: undefined"),先把 devirt 对 x64 降级为
+        // 基线行为(不 crash),x64 devirt 并入 x64 质量债专项(见 plan.md 风险登记)。
+        if (this.vm.arch === "x64") return false;
         const cls = this._devirtReceiverClass(obj);
         if (!cls || (this._devirtPoisoned && this._devirtPoisoned[cls])) return false;
         // 实例属性遮蔽:该方法名曾被函数值赋给实例属性 → 实例值可能遮蔽原型方法,拒去虚拟化

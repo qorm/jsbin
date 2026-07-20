@@ -1242,7 +1242,10 @@ export class Compiler {
         const ast = this.parse(source);
         // [支柱②] 去虚拟化全图预登记:任何代码发射前,沿 import 图只解析(不发射)登记
         // 全部类——注册表完备,"子类覆写守卫"可证(this.m() 仅在类无已注册子类时去虚拟化)。
-        this._devirtPrepass(ast, this.sourcePath || path.resolve("."));
+        // x64 门:跳过(见 functions.js _devirtualizeCall 注;x64 下 prepass/分析/发射全关)。
+        if (this.arch !== "x64") {
+            this._devirtPrepass(ast, this.sourcePath || path.resolve("."));
+        }
 
         if (this.outputType === "shared" || this.outputType === "static") {
             this.generateSharedLibraryRuntime();
