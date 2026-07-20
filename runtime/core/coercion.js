@@ -2108,17 +2108,69 @@ export class CoercionGenerator {
         vm.shrImm(VReg.V0, VReg.S0, 48);
         vm.cmpImm(VReg.V0, 0x7FFC);
         vm.jne("_strict_eq_false");
+        // [PERF] 融合比较:堆串(type 6)走 O(1) 长度判等 + memcmp(嵌入 NUL 正确);
+        // 数据段串 NUL-walk 早退(语义与旧 _strlen_slow 截断完全一致——数据段串的
+        // 长度本就扫到首个 NUL,无新增语义风险)。替代旧 _getStrContent×2+_strcmp
+        // (每候选 2×strlen 扫 + memcmp,Map 桶链探测热路径)。
         vm.mov(VReg.A0, VReg.S0);
         vm.call("_getStrContent");
-        vm.mov(VReg.S2, VReg.RET);
+        vm.mov(VReg.S2, VReg.RET); // c1
         vm.mov(VReg.A0, VReg.S1);
         vm.call("_getStrContent");
-        vm.mov(VReg.A1, VReg.RET);
-        vm.mov(VReg.A0, VReg.S2);
-        vm.call("_strcmp");
-        vm.cmpImm(VReg.RET, 0);
+        vm.mov(VReg.S3, VReg.RET); // c2
+        // 双方皆堆串(type 6)判别
+        vm.lea(VReg.V0, "_heap_base");
+        vm.load(VReg.V0, VReg.V0, 0);
+        vm.addImm(VReg.V0, VReg.V0, 16);
+        vm.cmp(VReg.S2, VReg.V0);
+        vm.jlt("_seq_str_walk");
+        vm.lea(VReg.V1, "_heap_ptr");
+        vm.load(VReg.V1, VReg.V1, 0);
+        vm.cmp(VReg.S2, VReg.V1);
+        vm.jge("_seq_str_walk");
+        vm.cmp(VReg.S3, VReg.V0);
+        vm.jlt("_seq_str_walk");
+        vm.cmp(VReg.S3, VReg.V1);
+        vm.jge("_seq_str_walk");
+        vm.subImm(VReg.V0, VReg.S2, 16);
+        vm.loadByte(VReg.V1, VReg.V0, 0);
+        vm.cmpImm(VReg.V1, 6); // TYPE_STRING
+        vm.jne("_seq_str_walk");
+        vm.subImm(VReg.V0, VReg.S3, 16);
+        vm.loadByte(VReg.V1, VReg.V0, 0);
+        vm.cmpImm(VReg.V1, 6);
+        vm.jne("_seq_str_walk");
+        // 堆串:长度不等 → false
+        vm.subImm(VReg.V0, VReg.S2, 16);
+        vm.load(VReg.V2, VReg.V0, 8); // len1
+        vm.subImm(VReg.V0, VReg.S3, 16);
+        vm.load(VReg.V3, VReg.V0, 8); // len2
+        vm.cmp(VReg.V2, VReg.V3);
+        vm.jne("_strict_eq_false");
+        // 等长:逐字节比对(嵌入 NUL 按长度覆盖,正确)
+        vm.movImm(VReg.V0, 0); // i
+        vm.label("_seq_str_hcmp");
+        vm.cmp(VReg.V0, VReg.V2);
+        vm.jge("_strict_eq_true");
+        vm.loadByte(VReg.V1, VReg.S2, 0);
+        vm.loadByte(VReg.V3, VReg.S3, 0);
+        vm.cmp(VReg.V1, VReg.V3);
+        vm.jne("_strict_eq_false");
+        vm.addImm(VReg.S2, VReg.S2, 1);
+        vm.addImm(VReg.S3, VReg.S3, 1);
+        vm.addImm(VReg.V0, VReg.V0, 1);
+        vm.jmp("_seq_str_hcmp");
+        // 数据段/非堆串:NUL-walk 早退(语义同旧 _strlen_slow 截断)
+        vm.label("_seq_str_walk");
+        vm.loadByte(VReg.V0, VReg.S2, 0);
+        vm.loadByte(VReg.V1, VReg.S3, 0);
+        vm.cmp(VReg.V0, VReg.V1);
+        vm.jne("_strict_eq_false");
+        vm.cmpImm(VReg.V0, 0);
         vm.jeq("_strict_eq_true");
-        vm.jmp("_strict_eq_false");
+        vm.addImm(VReg.S2, VReg.S2, 1);
+        vm.addImm(VReg.S3, VReg.S3, 1);
+        vm.jmp("_seq_str_walk");
 
         vm.label("_strict_eq_x_float");
         // 两个都是 float，比较原始位
