@@ -1115,7 +1115,7 @@ export class ObjectGenerator {
         vm.shlImm(VReg.V1, VReg.V3, 4);
         vm.add(VReg.V0, VReg.V0, VReg.V1);
         vm.load(VReg.V1, VReg.V0, 0);
-        vm.cmp(VReg.V1, VReg.A1); // 键自验证(v1 保留)
+        vm.cmp(VReg.V1, VReg.A1); // 键自验证(v1 保留;实测消除零增益,保留作安全网)
         vm.jne("_ogic_slow");
         vm.load(VReg.RET, VReg.V0, 8); // 命中:value
         vm.label("_ogic_getter_dispatch");
