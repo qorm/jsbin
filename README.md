@@ -10,11 +10,11 @@ A JavaScript-to-native compiler that translates JavaScript into standalone ARM64
 
 A self-hosting, zero-dependency JavaScript→native AOT compiler (5 targets: macOS/Linux arm64+x64, Windows x64). Latest release **v0.2.1** — shape (hidden-class) inline-cache infrastructure (static shape descriptors for object literals and class instances, 16-byte dual-mode property IC sites) and the self-host "layout cliff" root-cause fix (macOS `writeFileSync` missing `O_TRUNC`) — on top of TypedArray constructor globals, compile-time devirtualization of statically-resolvable method calls (self-compile −7.5%), G-M-P N>2 generalized work-stealing + an N-way stop-the-world GC across 3 real threads (linux-arm64), NUL-transparent strings, AES-GCM crypto, the test262 harness, real zlib / TCP, full compiler determinism (`gen1==gen2==gen3`), and full async. See **[CHANGELOG.md](./CHANGELOG.md)** for the full version history.
 
-`asm.js` is **self-hosting on all five targets — macOS-ARM64, macOS-x64, Linux-ARM64, Linux-x64, and Windows-x64**: on each, the compiler compiles its own source into a native binary, and that binary compiles the compiler again to a **byte-identical** result — a stable self-reproducing fixed point (`gen2 == gen3`; Linux verified in Docker, x64 targets under Rosetta 2, Windows under Wine). It supports a substantial ES subset and a limited Node core shim subset; full ECMAScript and full Node.js compatibility are still in progress.
+`asm.js` is **self-hosting on both ARM64 targets — macOS-ARM64 (native) and Linux-ARM64 (Docker)**: on each, the compiler compiles its own source into a native binary, and that binary compiles the compiler again to a **byte-identical** result — a stable self-reproducing fixed point (`gen1 == gen2 == gen3`). The x64 targets (macOS-x64, Linux-x64, Windows-x64) reached this fixed point as of v1.1.0 but currently do **not** hold it: a full self-compile of the CLI on x64 hits a layout-sensitive compilation blocker now under investigation (their cross-compiled outputs still build and run ordinary programs correctly — the five-target platform matrix is green). It supports a substantial ES subset and a limited Node core shim subset; full ECMAScript and full Node.js compatibility are still in progress.
 
 ## What Works Today
 
-- **Self-bootstrapping on all five targets (macOS-ARM64, macOS-x64, Linux-ARM64, Linux-x64, Windows-x64)**: the compiler compiles its own real CLI (`cli.js`) into a native binary; that binary compiles `cli.js` again, and `gen2 == gen3` byte-for-byte (stable fixed point) — verified natively on macOS-ARM64, in Docker on Linux (both arches), under Rosetta 2 for macOS-x64/Linux-x64, and under Wine for Windows-x64. No third-party libraries, no external interpreter. See [Self-Hosting](#self-hosting) for the per-target results table.
+- **Self-bootstrapping on both ARM64 targets (macOS-ARM64 native, Linux-ARM64 in Docker)**: the compiler compiles its own real CLI (`cli.js`) into a native binary; that binary compiles `cli.js` again, and `gen1 == gen2 == gen3` byte-for-byte (stable fixed point). No third-party libraries, no external interpreter. The x64 targets reached this fixed point at v1.1.0 but currently regress on full self-compilation (layout-sensitive blocker under investigation; ordinary-program correctness on x64 unaffected). See [Self-Hosting](#self-hosting) for details and the per-target history table.
 - Modern JavaScript syntax: arrow functions, closures, classes (methods/getters/static), async/await, promises, modules, for-of/for-in, try/catch, BigInt, template literals, destructuring
 - ESM import/export flows (validated via in-repo fixtures)
 - Node-style builtins: `console`, `process`, `fs` (partial), `path`, `timers` (partial), `os`; plus, all partial subsets, real `crypto` (SHA-1/256/512, HMAC, AES-CBC/CTR/GCM, PBKDF2, HKDF), `zlib` (DEFLATE/gzip), `net`/`http`/`dgram`, `stream`, `child_process`; per-module status: [docs/NODEJS_SUPPORT_ANALYSIS.md](./docs/NODEJS_SUPPORT_ANALYSIS.md)
@@ -36,7 +36,7 @@ An honest assessment of where this project stands. See [docs/ROADMAP.md](./docs/
 ### Strengths
 
 - **Single static binary, zero runtime dependencies.** Output is one native executable (Mach-O/ELF/PE) with no interpreter, no VM install, no shared-library requirements — the same deployment model as Go, applied to JavaScript.
-- **Proven self-hosting.** The compiler compiles itself to a byte-identical fixed point on all five targets. This is a strong, mechanically verifiable correctness claim: every language feature the ~90-module compiler itself uses (closures, classes, ESM modules, Map/Set, string/array workhorses, fs/path shims) is exercised end-to-end on every verification run.
+- **Proven self-hosting.** The compiler compiles itself to a byte-identical fixed point on both ARM64 targets (the three x64 targets reached it at v1.1.0 and are currently regressed, under investigation). This is a strong, mechanically verifiable correctness claim: every language feature the ~90-module compiler itself uses (closures, classes, ESM modules, Map/Set, string/array workhorses, fs/path shims) is exercised end-to-end on every verification run.
 - **Cross-compilation from any host.** Any supported host can emit binaries for all five targets; the backends and binary emitters (including the PE/IAT layer) are part of the single dependency-free codebase.
 - **Fast startup, small footprint.** No JIT warm-up, no snapshot loading: `main` starts within milliseconds. A hello-world binary is orders of magnitude smaller than bundling a Node/Electron runtime.
 - **Fully auditable stack.** Lexer, parser, compiler, register-level codegen, assemblers, linkers, object-format writers, GC, and the runtime library are all hand-written in this repository — no opaque third-party layer anywhere between `.js` source and executable bytes.
@@ -76,7 +76,8 @@ The bootstrap chain is:
 
 `gen1 != gen2` is expected and normal (Node's runtime vs. asm.js's own runtime differ
 in a few library corners, ~2.4 MB of the ~11 MB binary); the self-hosting proof is the
-`gen2 == gen3` fixed point, reached identically on every target.
+`gen2 == gen3` fixed point, reached on both ARM64 targets (the three x64 targets
+reached it at v1.1.0 and are currently regressed).
 
 ### How each generation is produced
 
@@ -88,7 +89,9 @@ in a few library corners, ~2.4 MB of the ~11 MB binary); the self-hosting proof 
 
 The self-hosting proof is `cmp gen2 gen3` → identical.
 
-### Results (all five targets reach `gen2 == gen3`)
+### Results (v1.1.0 fixed-point snapshot)
+
+> **Current status (v1.5.x):** the fixed point holds on **macOS-ARM64** (re-verified on every change) and **Linux-ARM64**. The three x64 targets reached it at v1.1.0 but do not currently hold it — a full self-compile of `cli.js` on x64 hits a layout-sensitive compilation blocker (devirtualization is disabled for x64 targets pending its resolution). The byte sizes below are v1.1.0 measurements and will drift. Cross-compilation to all five targets and ordinary-program correctness on x64 remain green (`platform_test.sh`).
 
 Every row below was produced by the three commands above and verified with `cmp`.
 Sizes are the exact byte counts of the native `cli.js` compiler on each target,
@@ -198,13 +201,14 @@ asm.js/
 ## Accurate Messaging
 
 Allowed:
-- "self-hosting" / "self-bootstrapping" (verified: `gen2 == gen3` fixed point)
+- "self-hosting" / "self-bootstrapping" on ARM64 targets (verified: `gen1 == gen2 == gen3` fixed point; x64 targets reached it at v1.1.0, currently regressed and under investigation)
 - "supports a substantial ES subset"
 - "includes a limited Node core shim subset"
 - "validated through repository fixtures + a verified self-compilation fixed point"
 - "test262 conformance harness integrated (first baseline 20.4% of a stride-5 subset, being improved)"
 
 Not (yet) accurate:
+- "self-hosting on all five targets" (ARM64 targets only, as of v1.5.x)
 - "full ES support"
 - "full Node support"
 - "drop-in Node replacement"

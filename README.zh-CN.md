@@ -10,11 +10,11 @@
 
 自举、零依赖的 JavaScript→原生 AOT 编译器(5 目标:macOS/Linux arm64+x64、Windows x64)。最新版 **v0.2.1** — 形状(隐藏类)内联缓存基础设施(对象字面量/类实例静态形状描述符、16 字节双模属性 IC 站点)+ 自举"布局悬崖"根因修复(macOS `writeFileSync` 缺 `O_TRUNC`)——建立在 TypedArray 构造器全局值、静态可解析方法调用的编译期去虚拟化(自编译 −7.5%)、G-M-P N>2 通用工作窃取 + 跨 3 个真线程的 N 路停止世界 GC(linux-arm64)、NUL 透明字符串、AES-GCM 加密、test262 harness、真 zlib / TCP、完整编译器确定性(`gen1==gen2==gen3`)、完整 async 之上。完整版本历史见 **[CHANGELOG.zh-CN.md](./CHANGELOG.zh-CN.md)**。
 
-`asm.js` 已在**全部五个目标(macOS-ARM64、macOS-x64、Linux-ARM64、Linux-x64、Windows-x64)上实现自举**:在每个目标上,编译器把自身源码编译成原生二进制,该二进制再次编译编译器,产物**逐字节一致** —— 稳定的自我复现定点(`gen2 == gen3`;Linux 在 Docker 验证、x64 目标在 Rosetta 2 下、Windows 在 Wine 下)。当前支持较大的 ES 子集与有限的 Node 核心 shim 子集;完整 ECMAScript 与完整 Node.js 兼容仍在进行中。
+`asm.js` 已在**两个 ARM64 目标(macOS-ARM64 原生、Linux-ARM64 Docker)上实现自举**:在每个目标上,编译器把自身源码编译成原生二进制,该二进制再次编译编译器,产物**逐字节一致** —— 稳定的自我复现定点(`gen1 == gen2 == gen3`)。x64 三目标(macOS-x64、Linux-x64、Windows-x64)在 v1.1.0 曾达成此定点,当前**不保持**:x64 上完整自编译 CLI 命中一个布局敏感的编译阻塞,正在取证排查(其交叉编译产物仍能正确构建并运行普通程序——五目标平台矩阵绿)。当前支持较大的 ES 子集与有限的 Node 核心 shim 子集;完整 ECMAScript 与完整 Node.js 兼容仍在进行中。
 
 ## 现在能做什么
 
-- **五目标自举**:编译器把真实 CLI(`cli.js`)编译成原生二进制;该二进制再编译 `cli.js`,`gen2 == gen3` 逐字节一致(稳定定点)。macOS-ARM64 原生验证、Linux 双架构 Docker 验证、macOS-x64/Linux-x64 Rosetta 2 验证、Windows-x64 Wine 验证。无三方库、无外部解释器。
+- **ARM64 双目标自举**(macOS-ARM64 原生、Linux-ARM64 Docker):编译器把真实 CLI(`cli.js`)编译成原生二进制;该二进制再编译 `cli.js`,`gen1 == gen2 == gen3` 逐字节一致(稳定定点)。无三方库、无外部解释器。x64 三目标在 v1.1.0 曾达成此定点,当前在完整自编译上回退(布局敏感阻塞排查中;x64 普通程序正确性不受影响)。详见[自举](#自举self-hosting)一节及其中历史结果表。
 - 现代 JavaScript 语法:箭头函数、闭包、类(方法/getter/静态)、async/await、Promise、模块、for-of/for-in、try/catch、BigInt、模板字符串、解构
 - ESM import/export 流程(通过仓库内 fixtures 验证)
 - Node 风格内建:`console`、`process`、`fs`(部分)、`path`、`timers`(部分)、`os`;另有真实 `crypto`(SHA-1/256/512、HMAC、AES-CBC/CTR/GCM、PBKDF2、HKDF)、`zlib`(DEFLATE/gzip)、`net`/`http`/`dgram`、`stream`、`child_process`,均为部分子集;逐模块状态见 [docs/NODEJS_SUPPORT_ANALYSIS.md](./docs/NODEJS_SUPPORT_ANALYSIS.md)
@@ -36,7 +36,7 @@
 ### 优势
 
 - **单一静态二进制,零运行时依赖。** 产物是一个原生可执行文件(Mach-O/ELF/PE),不需要解释器、不需要安装 VM、不依赖共享库 —— Go 的部署模型,应用到 JavaScript。
-- **经过证明的自举。** 编译器在五个目标上把自身编译到逐字节一致的定点。这是一个强的、可机械验证的正确性声明:编译器自身(~90 个模块)用到的每一个语言特性(闭包、类、ESM 模块、Map/Set、字符串/数组主力方法、fs/path shim)在每次验证中都被端到端锻炼。
+- **经过证明的自举。** 编译器在两个 ARM64 目标上把自身编译到逐字节一致的定点(x64 三目标曾于 v1.1.0 达成,当前回退、排查中)。这是一个强的、可机械验证的正确性声明:编译器自身(~90 个模块)用到的每一个语言特性(闭包、类、ESM 模块、Map/Set、字符串/数组主力方法、fs/path shim)在每次验证中都被端到端锻炼。
 - **任意宿主交叉编译。** 任一受支持宿主可产出全部五个目标的二进制;后端与二进制产出层(含 PE/IAT)都在这一个零依赖代码库里。
 - **启动快、体积小。** 无 JIT 预热、无快照加载:`main` 毫秒级启动。hello-world 二进制比捆绑 Node/Electron 运行时小几个数量级。
 - **全栈可审计。** 词法、语法、编译器、寄存器级代码生成、汇编器、链接器、目标文件写出、GC、运行时库全部为本仓库手写 —— 从 `.js` 源码到可执行字节之间没有任何不透明的第三方层。
@@ -72,7 +72,7 @@
 3. **gen3** — `gen2` 把 `cli.js` 编译为 `gen3`。
 4. **定点** — `gen2 == gen3` 逐字节一致:稳定的自我复现编译器。
 
-`gen1 != gen2` 是预期且正常的(Node 运行时与 asm.js 自身运行时在少数库角落不同,约影响 ~11 MB 二进制中的 ~2.4 MB);自举的证明是 `gen2 == gen3` 定点,五个目标全部达成。
+`gen1 != gen2` 是预期且正常的(Node 运行时与 asm.js 自身运行时在少数库角落不同,约影响 ~11 MB 二进制中的 ~2.4 MB);自举的证明是 `gen2 == gen3` 定点,两个 ARM64 目标达成(x64 三目标 v1.1.0 曾达成,当前回退)。
 
 ### 每一代的产生方式
 
@@ -84,7 +84,9 @@
 
 自举证明:`cmp gen2 gen3` → 一致。
 
-### 结果(五目标全部达成 `gen2 == gen3`)
+### 结果(v1.1.0 定点快照)
+
+> **现状(v1.5.x):** 定点在 **macOS-ARM64**(每次变更复验)与 **Linux-ARM64** 上保持。x64 三目标在 v1.1.0 达成后当前不保持——x64 上完整自编译 `cli.js` 命中布局敏感的编译阻塞(去虚拟化已对 x64 目标关闭,待该阻塞解决后重开)。下表字节数为 v1.1.0 测量值,会漂移。五目标交叉编译与 x64 普通程序正确性仍为绿(`platform_test.sh`)。
 
 下表每行由上述三条命令产生并用 `cmp` 验证。尺寸为 v1.1.0 发布时各目标原生 `cli.js` 编译器的精确字节数(随开发持续漂移;macOS-ARM64 定点每次变更都复验,其余目标在发布时复验)。
 
@@ -167,13 +169,14 @@ asm.js/
 ## 准确表述(Accurate Messaging)
 
 可以说:
-- “自举 / self-hosting”(已验证:`gen2 == gen3` 定点)
+- “ARM64 目标自举 / self-hosting”(已验证:`gen1 == gen2 == gen3` 定点;x64 三目标 v1.1.0 曾达成,当前回退排查中)
 - “支持较大的 ES 子集”
 - “包含有限的 Node 核心 shim 子集”
 - “通过仓库 fixtures + 已验证的自编译定点校验”
 - “已接入 test262 符合性 harness(首个基线为 stride-5 子集的 20.4%,持续提升中)”
 
 (还)不能说:
+- “五目标全部自举”(v1.5.x 起仅 ARM64 双目标)
 - “完整 ES 支持”
 - “完整 Node 支持”
 - “Node 的直接替代品”
