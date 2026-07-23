@@ -606,7 +606,7 @@ export const StatementCompiler = {
             // [#34] rest:[..., ...rest] → slice(ei) 余下成新数组
             if (el.type === "SpreadElement") {
                 const rn = el.argument && el.argument.name;
-                if (!rn) continue;
+                if (!el.argument) continue;   // [test262 S1] 允许 pattern rest 目标([...[x]]);emitBindTarget 递归解构
                 this.vm.load(VReg.A0, VReg.FP, srcSlot);
                 this.vm.call("_js_unbox");
                 this.vm.mov(VReg.A0, VReg.RET);

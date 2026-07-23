@@ -444,6 +444,8 @@ export const ExpressionParser = {
             // [rest] 对象解构 rest:{a, ...rest} —— 收集其余自有属性成新对象。
             // rest 必须在末位;推入 SpreadElement(Identifier) 后结束。
             if (this.curTokenIs(TokenType.SPREAD)) {
+                // 对象 rest 目标必须是标识符(ES:ObjectRestProperty = ...BindingIdentifier,
+                // {...{a}} 非法)。数组 rest 才可为模式(见 parseArrayPattern)。
                 this.nextToken();
                 pattern.properties.push(new AST.SpreadElement(new AST.Identifier(this.curToken.literal)));
                 break;
@@ -553,9 +555,13 @@ export const ExpressionParser = {
         this.nextToken();
         while (!this.curTokenIs(TokenType.RBRACKET) && !this.curTokenIs(TokenType.EOF)) {
             if (this.curTokenIs(TokenType.SPREAD)) {
-                // [#34] rest 元素 [..., ...rest]
+                // [#34] rest 元素 [..., ...rest];[test262 S1] rest 目标可为绑定模式 [...[x]]/[...{a}]
                 this.nextToken();
-                pattern.elements.push(new AST.SpreadElement(new AST.Identifier(this.curToken.literal)));
+                let restTarget;
+                if (this.curTokenIs(TokenType.LBRACE)) restTarget = this.parseObjectPattern();
+                else if (this.curTokenIs(TokenType.LBRACKET)) restTarget = this.parseArrayPattern();
+                else restTarget = new AST.Identifier(this.curToken.literal);
+                pattern.elements.push(new AST.SpreadElement(restTarget));
             } else if (this.curTokenIs(TokenType.LBRACE) || this.curTokenIs(TokenType.LBRACKET)) {
                 // [#47] 嵌套解构:元素位可为 {..}/[..] 子 pattern(递归)。
                 const sub = this.curTokenIs(TokenType.LBRACE) ? this.parseObjectPattern() : this.parseArrayPattern();
