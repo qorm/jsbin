@@ -588,7 +588,8 @@ export const ExpressionParser = {
                 // cur 本身即分隔逗号,不能再走下方 peek-comma 逻辑;越过它到下一元素后 continue。
                 pattern.elements.push(null);
                 if (this.peekTokenIs(TokenType.RBRACKET)) {
-                    this.nextToken();
+                    // [test262 S1] 纯/尾 elision [,]/[a,,]:留 cur=, peek=] 给末尾 expectPeek
+                    // 消费(勿在此 nextToken 双吞 RBRACKET,否则 expectPeek 见到 = 报 expected ])。
                     break;
                 }
                 this.nextToken();
