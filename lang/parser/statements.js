@@ -274,6 +274,30 @@ export const StatementParser = {
             }
         } else if (!this.curTokenIs(TokenType.SEMICOLON)) {
             init = this.parseExpression(Precedence.LOWEST);
+            // [test262 S1] 非声明式 for-of/in 左值:for (a of x) / for ([a,b] of x) / for (a in x) /
+            // for ([a,b] in obj)。左值为表达式(标识符/成员/数组-对象表达式);数组-对象表达式由
+            // 编译器 reinterpretAsPattern 重解释为赋值形 pattern。修 ~90 个 "expected ;, got OF" COMPILE_FAIL。
+            if (this.peekTokenIs(TokenType.OF)) {
+                // for-of:of 非运算符,parseExpression 在其前已停。
+                this.nextToken();
+                this.nextToken();
+                let right = this.parseExpression(Precedence.LOWEST);
+                if (!this.expectPeek(TokenType.RPAREN)) return null;
+                this.nextToken();
+                let body = this.curTokenIs(TokenType.LBRACE) ? this.parseBlockStatement() : this.parseStatement();
+                return new AST.ForOfStatement(init, right, body, isAwait);
+            }
+            if (init && init.type === "BinaryExpression" && init.operator === "in" &&
+                this.peekTokenIs(TokenType.RPAREN)) {
+                // for-in:`a in x` 被 parseExpression 当二元 in 吞掉 → 顶层 in 且后随 `)` 即 for-in,
+                // 拆 left/right。区别于 `for((a in x);b;c)` 常规 for(其后随 `;` 不命中此分支)。
+                let right = init.right;
+                let left = init.left;
+                if (!this.expectPeek(TokenType.RPAREN)) return null;   // 移到 )
+                this.nextToken();   // 移到 body
+                let body = this.curTokenIs(TokenType.LBRACE) ? this.parseBlockStatement() : this.parseStatement();
+                return new AST.ForInStatement(left, right, body);
+            }
         }
         if (!this.curTokenIs(TokenType.SEMICOLON)) {
             if (!this.expectPeek(TokenType.SEMICOLON)) return null;

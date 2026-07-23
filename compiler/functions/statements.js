@@ -1439,6 +1439,10 @@ export const StatementCompiler = {
             // [#53] for ([x,y] of ...)：赋值形解构（无声明），元素写入既有 lvalue
             loopPattern = stmt.left;
             loopPatternMode = "assign";
+        } else if (stmt.left.type === "ObjectExpression" || stmt.left.type === "ArrayExpression") {
+            // [test262 S1] 非声明式 for ([a,b] of ...)：parser 传表达式左值，重解释为赋值形 pattern
+            loopPattern = this.reinterpretAsPattern(stmt.left);
+            loopPatternMode = "assign";
         }
 
         // 分配迭代变量（Identifier 路径）。pattern 路径改为分配一个元素临时槽，
@@ -1784,6 +1788,7 @@ export const StatementCompiler = {
         // 获取迭代变量名
         let varName = null;
         let keyPattern = null;
+        let keyPatternMode = "decl";
         if (stmt.left.type === "VariableDeclaration" && stmt.left.declarations.length > 0) {
             const decl = stmt.left.declarations[0];
             if (decl.id.type === "Identifier") {
@@ -1791,9 +1796,18 @@ export const StatementCompiler = {
             } else if (decl.id.type === "ArrayPattern" || decl.id.type === "ObjectPattern") {
                 // for(var [i,j,k] in obj):键(字符串/键名)按 pattern 解构
                 keyPattern = decl.id;
+                keyPatternMode = "decl";
             }
         } else if (stmt.left.type === "Identifier") {
             varName = stmt.left.name;
+        } else if (stmt.left.type === "ArrayPattern" || stmt.left.type === "ObjectPattern") {
+            // [test262 S1] 非声明式 for ([a,b] in obj):赋值形解构,键写入既有 lvalue
+            keyPattern = stmt.left;
+            keyPatternMode = "assign";
+        } else if (stmt.left.type === "ArrayExpression" || stmt.left.type === "ObjectExpression") {
+            // [test262 S1] 非声明式 for ([a,b] in obj):parser 传表达式左值,重解释为赋值形 pattern
+            keyPattern = this.reinterpretAsPattern(stmt.left);
+            keyPatternMode = "assign";
         }
 
         // 分配迭代变量
@@ -1886,7 +1900,7 @@ export const StatementCompiler = {
             // for([a,b] in obj):键(RET)落临时槽,按 pattern 解构(声明形)。
             const kSlot = this.ctx.allocLocal(`__forin_key_${this.nextLabelId()}`);
             this.vm.store(VReg.FP, kSlot, VReg.RET);
-            this.emitDestructurePattern(keyPattern, kSlot, "decl");
+            this.emitDestructurePattern(keyPattern, kSlot, keyPatternMode);
         } else {
             this.storeLoopVar(varName, varOffset);
         }
