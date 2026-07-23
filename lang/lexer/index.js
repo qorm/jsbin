@@ -176,13 +176,34 @@ export class Lexer {
         }
     }
 
-    // 读取标识符
+    // 读取标识符（支持内嵌 Unicode 转义 \u{...} / \uNNNN，解码成 UTF-8 字节并入标识符值，
+    // 与裸非 ASCII 标识符的字节表示一致。[test262 S1] 修 ~215 个标识符转义 COMPILE_FAIL）
     readIdentifier() {
         let startPos = this.position;
+        // 快路：无转义直接 slice（绝大多数标识符；自编译词法零额外开销）
         while (this.isLetter(this.ch) || this.isDigit(this.ch)) {
             this.readChar();
         }
-        return this.input.slice(startPos, this.position);
+        if (this.ch !== "\\") {
+            return this.input.slice(startPos, this.position);
+        }
+        // 慢路：含 \u 转义 → 在已读片段后解码续接（\x 在标识符里非法，不处理，留给下轮 ILLEGAL）。
+        // 解码后经 lookupIdent 照常判关键字（ES:转义拼成 ReservedWord 非法，`var \u{69}f` 应拒）。
+        let result = this.input.slice(startPos, this.position);
+        while (this.ch === "\\" && this.peekChar() === "u") {
+            this.readChar();                 // 消费 '\'，this.ch = 'u'
+            let _esc = this._peekHexEscape();
+            if (_esc.cook === null) break;   // 非法转义 → 停读（交 parser 报错）
+            let _z = 0;
+            while (_z < _esc.extra) { this.readChar(); _z = _z + 1; }
+            result = result + _esc.cook;
+            this.readChar();                 // 越过转义末字符（镜像 readString 逐步进）
+            while (this.isLetter(this.ch) || this.isDigit(this.ch)) {
+                result = result + this.ch;
+                this.readChar();
+            }
+        }
+        return result;
     }
 
     // 读取数字
@@ -714,7 +735,7 @@ export class Lexer {
         } else if (this.ch === "#") {
             // 私有字段: #name
             this.readChar(); // 跳过 #
-            if (this.isLetter(this.ch)) {
+            if (this.isLetter(this.ch) || (this.ch === "\\" && this.peekChar() === "u")) {
                 let ident = this.readIdentifier();
                 return newToken(TokenType.IDENT, "#" + ident, startLine, startColumn);
             }
@@ -729,7 +750,7 @@ export class Lexer {
             return ttok;
         } else if (this.ch === "\0") {
             tok = newToken(TokenType.EOF, "", startLine, startColumn);
-        } else if (this.isLetter(this.ch)) {
+        } else if (this.isLetter(this.ch) || (this.ch === "\\" && this.peekChar() === "u")) {
             let ident = this.readIdentifier();
             // When inside template expression (templateDepth > 0), treat keywords as identifiers
             let type = lookupIdent(ident, this.templateDepth > 0);
