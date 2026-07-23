@@ -506,6 +506,11 @@ export const StatementCompiler = {
                     this.vm.load(VReg.A0, VReg.FP, srcSlot);
                     this.vm.load(VReg.A1, VReg.FP, ckSlot);
                     this.vm.call("_object_get");
+                    // [test262 S1] getter 解包:_object_get 返原始值(含 getter 标记),
+                    // 补 _maybe_getter(value=RET, this=源对象)触发访问器。缺失键 raw 0 透传不影响默认值。
+                    this.vm.mov(VReg.A0, VReg.RET);
+                    this.vm.load(VReg.A1, VReg.FP, srcSlot);
+                    this.vm.call("_maybe_getter");
                 } else {
                     const keyName = prop.key && prop.key.name;
                     if (!keyName) continue;
@@ -513,6 +518,10 @@ export const StatementCompiler = {
                     this.vm.load(VReg.A0, VReg.FP, srcSlot);
                     this.emitBoxedStringKey(keyName, VReg.A1);
                     this.vm.call("_object_get");
+                    // [test262 S1] getter 解包(同计算键路径)
+                    this.vm.mov(VReg.A0, VReg.RET);
+                    this.vm.load(VReg.A1, VReg.FP, srcSlot);
+                    this.vm.call("_maybe_getter");
                 }
                 if (dflt) {
                     // 缺键(_object_get 返 raw 0)或 tagged undefined → 用默认表达式
